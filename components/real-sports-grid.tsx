@@ -1,8 +1,9 @@
 "use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, TrendingUp, Loader2, AlertCircle } from "lucide-react"
+import { Clock, TrendingUp, Loader2, AlertCircle, Star } from "lucide-react"
 import { useFootballData } from "@/hooks/use-football-data"
 
 interface RealSportsGridProps {
@@ -13,16 +14,27 @@ export function RealSportsGrid({ onAddToBetSlip }: RealSportsGridProps) {
   const { matches, loading, error, refetch } = useFootballData()
 
   const handleBetClick = (match: any, betType: "home" | "draw" | "away", odds: number) => {
+    const selection = betType === 'home' 
+      ? match.homeTeam 
+      : betType === 'away' 
+      ? match.awayTeam 
+      : 'Draw'
+
     const bet = {
       id: `${match.id}-${betType}`,
       matchId: match.id,
       homeTeam: match.homeTeam,
       awayTeam: match.awayTeam,
+      selection: selection,
+      eventName: `${match.homeTeam} vs ${match.awayTeam}`,
+      match: `${match.homeTeam} vs ${match.awayTeam}`,
       league: match.league,
       betType,
+      bet: selection,
       odds: Number.parseFloat(odds.toFixed(2)),
       stake: 0,
     }
+
     onAddToBetSlip(bet)
   }
 
@@ -92,7 +104,7 @@ export function RealSportsGrid({ onAddToBetSlip }: RealSportsGridProps) {
                     </div>
                   )}
                   {match.status === "finished" && (
-                    <Badge variant="secondary" className="bg-gray-600">
+                    <Badge variant="secondary" className="bg-gray-700 text-gray-300">
                       FT {match.homeScore}-{match.awayScore}
                     </Badge>
                   )}
@@ -101,73 +113,128 @@ export function RealSportsGrid({ onAddToBetSlip }: RealSportsGridProps) {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <div className="text-center">
-                <div className="flex items-center justify-center space-x-4 mb-4">
-                  <div className="text-center">
-                    <img
-                      src={match.homeTeamLogo || "/placeholder.svg"}
-                      alt={match.homeTeam}
-                      className="w-12 h-12 mx-auto mb-2"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder.svg?height=48&width=48&text=H"
-                      }}
-                    />
-                    <div className="text-white text-sm font-medium">{match.homeTeam}</div>
-                  </div>
+              {/* Teams */}
+              <div className="space-y-3">
+                {/* Home Team */}
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={match.homeTeamLogo || "/placeholder.svg"}
+                    alt={match.homeTeam}
+                    className="w-8 h-8 rounded-full"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg?height=32&width=32&text=H"
+                    }}
+                  />
+                  <span className="text-white font-medium flex-1 truncate">{match.homeTeam}</span>
+                  {match.status === "live" && (
+                    <span className="text-lg font-bold text-white">{match.homeScore}</span>
+                  )}
+                </div>
 
-                  <div className="text-gray-400 text-sm">VS</div>
+                {/* VS Divider */}
+                <div className="flex items-center justify-center">
+                  <span className="text-gray-400 text-sm font-medium">VS</span>
+                </div>
 
-                  <div className="text-center">
-                    <img
-                      src={match.awayTeamLogo || "/placeholder.svg"}
-                      alt={match.awayTeam}
-                      className="w-12 h-12 mx-auto mb-2"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder.svg?height=48&width=48&text=A"
-                      }}
-                    />
-                    <div className="text-white text-sm font-medium">{match.awayTeam}</div>
-                  </div>
+                {/* Away Team */}
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={match.awayTeamLogo || "/placeholder.svg"}
+                    alt={match.awayTeam}
+                    className="w-8 h-8 rounded-full"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg?height=32&width=32&text=A"
+                    }}
+                  />
+                  <span className="text-white font-medium flex-1 truncate">{match.awayTeam}</span>
+                  {match.status === "live" && (
+                    <span className="text-lg font-bold text-white">{match.awayScore}</span>
+                  )}
                 </div>
               </div>
 
-              {match.odds && match.status === "scheduled" && (
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gray-700 border-gray-600 hover:bg-yellow-500/20 hover:border-yellow-500 text-white flex flex-col py-3 h-auto"
-                    onClick={() => handleBetClick(match, "home", match.odds!.home)}
-                  >
-                    <span className="text-xs text-gray-400">1</span>
-                    <span className="font-semibold">{match.odds.home.toFixed(2)}</span>
-                  </Button>
+              {/* Betting Odds */}
+              {match.odds && (
+                <div className="pt-3 border-t border-gray-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-400 font-medium">1X2</span>
+                    <Button variant="ghost" size="icon" className="w-5 h-5 text-gray-400 hover:text-yellow-400">
+                      <Star className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-700 border-gray-600 text-white hover:bg-yellow-500 hover:text-gray-900 transition-colors text-sm font-medium h-9"
+                      onClick={() => handleBetClick(match, "home", match.odds.home)}
+                      disabled={match.status === "finished"}
+                    >
+                      <div className="text-center">
+                        <div className="text-xs opacity-75">1</div>
+                        <div>{match.odds.home.toFixed(2)}</div>
+                      </div>
+                    </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gray-700 border-gray-600 hover:bg-yellow-500/20 hover:border-yellow-500 text-white flex flex-col py-3 h-auto"
-                    onClick={() => handleBetClick(match, "draw", match.odds!.draw)}
-                  >
-                    <span className="text-xs text-gray-400">X</span>
-                    <span className="font-semibold">{match.odds.draw.toFixed(2)}</span>
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-700 border-gray-600 text-white hover:bg-yellow-500 hover:text-gray-900 transition-colors text-sm font-medium h-9"
+                      onClick={() => handleBetClick(match, "draw", match.odds.draw)}
+                      disabled={match.status === "finished"}
+                    >
+                      <div className="text-center">
+                        <div className="text-xs opacity-75">X</div>
+                        <div>{match.odds.draw.toFixed(2)}</div>
+                      </div>
+                    </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gray-700 border-gray-600 hover:bg-yellow-500/20 hover:border-yellow-500 text-white flex flex-col py-3 h-auto"
-                    onClick={() => handleBetClick(match, "away", match.odds!.away)}
-                  >
-                    <span className="text-xs text-gray-400">2</span>
-                    <span className="font-semibold">{match.odds.away.toFixed(2)}</span>
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-700 border-gray-600 text-white hover:bg-yellow-500 hover:text-gray-900 transition-colors text-sm font-medium h-9"
+                      onClick={() => handleBetClick(match, "away", match.odds.away)}
+                      disabled={match.status === "finished"}
+                    >
+                      <div className="text-center">
+                        <div className="text-xs opacity-75">2</div>
+                        <div>{match.odds.away.toFixed(2)}</div>
+                      </div>
+                    </Button>
+                  </div>
+
+                  {/* Additional Match Info */}
+                  {match.venue && (
+                    <div className="mt-2 text-xs text-gray-400 flex items-center">
+                      <span>📍 {match.venue}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* No odds available message */}
+              {!match.odds && (
+                <div className="pt-3 border-t border-gray-700 text-center">
+                  <span className="text-gray-400 text-sm">Odds not available</span>
                 </div>
               )}
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Show more matches button */}
+      {matches.length > 6 && (
+        <div className="flex justify-center pt-6">
+          <Button
+            variant="outline" 
+            className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10 bg-transparent"
+          >
+            Load More Matches ({matches.length - 6} remaining)
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

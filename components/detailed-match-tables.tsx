@@ -174,7 +174,13 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                     onClick={() =>
                       onAddToBetSlip({
                         id: `${match.id}-home`,
+                        matchId: match.id,
+                        homeTeam: match.homeTeam.name,
+                        awayTeam: match.awayTeam.name,
+                        selection: match.homeTeam.name,
+                        eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
                         match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                        betType: 'home',
                         bet: match.homeTeam.name,
                         odds: Number.parseFloat(match.odds.home.toFixed(2)),
                         league: leagueData.name,
@@ -191,7 +197,13 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                     onClick={() =>
                       onAddToBetSlip({
                         id: `${match.id}-draw`,
+                        matchId: match.id,
+                        homeTeam: match.homeTeam.name,
+                        awayTeam: match.awayTeam.name,
+                        selection: "Draw",
+                        eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
                         match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                        betType: 'draw',
                         bet: "Draw",
                         odds: Number.parseFloat(match.odds.draw.toFixed(2)),
                         league: leagueData.name,
@@ -208,7 +220,13 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                     onClick={() =>
                       onAddToBetSlip({
                         id: `${match.id}-away`,
+                        matchId: match.id,
+                        homeTeam: match.homeTeam.name,
+                        awayTeam: match.awayTeam.name,
+                        selection: match.awayTeam.name,
+                        eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
                         match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                        betType: 'away',
                         bet: match.awayTeam.name,
                         odds: Number.parseFloat(match.odds.away.toFixed(2)),
                         league: leagueData.name,

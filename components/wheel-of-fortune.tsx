@@ -4,7 +4,13 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export function WheelOfFortune() {
   const [selectedAmount, setSelectedAmount] = useState("50.00")
@@ -18,39 +24,24 @@ export function WheelOfFortune() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Select an event */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white text-lg">Select an event</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="bg-gray-700 p-3 rounded">
-              <div className="flex items-center space-x-2 text-sm text-gray-300">
-                <span>⚠️</span>
-                <span>Always agree to a change in the coefficient</span>
-              </div>
-            </div>
-            <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold">
-              Select Bets
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
+    <div className="space-y-6 px-4 sm:px-6 md:px-8">
       {/* Wheel of Fortune */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-lg">Wheel of Fortune</CardTitle>
-          <p className="text-gray-400 text-sm">Spin the wheel of fortune and try your luck with a chance to win!</p>
+          <CardTitle className="text-white text-lg sm:text-xl">
+            Wheel of Fortune
+          </CardTitle>
+          <p className="text-gray-400 text-sm">
+            Spin the wheel of fortune and try your luck with a chance to win!
+          </p>
         </CardHeader>
+
         <CardContent className="space-y-6">
           {/* Wheel Display */}
           <div className="flex justify-center">
             <div className="relative">
               <div
-                className={`w-48 h-48 rounded-full border-4 border-yellow-500 bg-gradient-to-br from-green-600 via-yellow-500 to-red-600 flex items-center justify-center ${
+                className={`w-48 h-48 sm:w-40 sm:h-40 xs:w-32 xs:h-32 rounded-full border-4 border-yellow-500 flex items-center justify-center ${
                   isSpinning ? "animate-spin" : ""
                 }`}
                 style={{
@@ -65,12 +56,15 @@ export function WheelOfFortune() {
                   )`,
                 }}
               >
-                <div className="w-32 h-32 bg-gray-900 rounded-full flex items-center justify-center border-4 border-yellow-500">
+                <div className="w-32 h-32 sm:w-28 sm:h-28 xs:w-24 xs:h-24 bg-gray-900 rounded-full flex items-center justify-center border-4 border-yellow-500">
                   <div className="text-center">
-                    <div className="text-yellow-400 text-2xl font-bold">${selectedAmount}</div>
+                    <div className="text-yellow-400 text-2xl sm:text-xl xs:text-lg font-bold">
+                      ${selectedAmount}
+                    </div>
                   </div>
                 </div>
               </div>
+
               {/* Pointer */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2">
                 <div className="w-0 h-0 border-l-4 border-r-4 border-b-8 border-l-transparent border-r-transparent border-b-yellow-500"></div>
@@ -83,7 +77,7 @@ export function WheelOfFortune() {
             <div>
               <label className="text-white text-sm mb-2 block">Bet Amount</label>
               <Select value={selectedAmount} onValueChange={setSelectedAmount}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-700 border-gray-600">
@@ -101,7 +95,7 @@ export function WheelOfFortune() {
               <Input
                 type="number"
                 placeholder="Enter amount"
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-full"
                 value={selectedAmount}
                 onChange={(e) => setSelectedAmount(e.target.value)}
               />

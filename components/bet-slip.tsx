@@ -11,9 +11,9 @@ interface BetSlipProps {
   onRemoveBet: (betId: string) => void
   isOpen: boolean
   onToggle: () => void
-  isAuthenticated?: boolean // Add authentication state
-  onLogin?: () => void // Add login handler
-  onPlaceBet?: (betData: any) => void // Add place bet handler
+  isAuthenticated?: boolean
+  onLogin?: () => void
+  onPlaceBet?: (betData: any) => void
 }
 
 export function BetSlip({ 
@@ -30,50 +30,32 @@ export function BetSlip({
   const [autoAcceptChanges, setAutoAcceptChanges] = useState(true)
   const [isPlacingBet, setIsPlacingBet] = useState(false)
 
-  const quickStakeAmounts = [100, 200, 500, 700, "Max"]
-
-  const handleStakeChange = (amount: number | string) => {
-    if (amount === "Max") {
-      setStake(1000) // Set max amount
-    } else {
-      setStake(amount as number)
-    }
-  }
-
   const adjustStake = (increment: boolean) => {
-    if (increment) {
-      setStake((prev) => prev + 10)
-    } else {
-      setStake((prev) => Math.max(0, prev - 10))
-    }
+    setStake((prev) => Math.max(0, prev + (increment ? 10 : -10)))
   }
 
   const handlePlaceBet = async () => {
     if (!isAuthenticated) {
-      // Redirect to login if not authenticated
       onLogin?.()
       return
     }
 
-    // Place the bet if authenticated
     setIsPlacingBet(true)
-    
+
+    const totalOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
     const betData = {
       bets,
       stake,
       autoAcceptChanges,
       betType: activeTab,
-      totalOdds: bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1),
-      possibleProfit: stake * bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
+      totalOdds,
+      possibleProfit: stake * totalOdds
     }
 
     try {
       await onPlaceBet?.(betData)
-      // Reset form after successful bet placement
-      // Note: You might want to clear bets or show success message
     } catch (error) {
       console.error('Error placing bet:', error)
-      // Handle error (show toast, etc.)
     } finally {
       setIsPlacingBet(false)
     }
@@ -83,7 +65,6 @@ export function BetSlip({
     bets.forEach(bet => onRemoveBet(bet.id))
   }
 
-  // Calculate total odds and potential profit
   const totalOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
   const possibleProfit = stake * totalOdds
 
@@ -101,7 +82,7 @@ export function BetSlip({
             {bets.length > 0 && (
               <Button
                 variant="ghost"
-                size="sm" 
+                size="sm"
                 onClick={clearAllBets}
                 className="text-xs text-gray-400 hover:text-red-400"
               >
@@ -133,23 +114,19 @@ export function BetSlip({
           ))}
         </div>
 
-        {/* Content - Scrollable */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto scrollbar-hide px-4">
           {bets.length > 0 ? (
             <div className="space-y-4">
-              {/* Bet Cards */}
               {bets.map((bet, index) => (
                 <Card key={bet.id || index} className="bg-gray-700 border-gray-600 relative">
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      {/* Event Info */}
                       <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0">
                           <div className="text-white text-sm font-medium mb-2 truncate">
                             {bet.eventName || "Football Austin The Waco Cup"}
                           </div>
-
-                          {/* Teams */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-2 flex-1 min-w-0">
                               <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -163,7 +140,6 @@ export function BetSlip({
                               {bet.odds || "2.44"}
                             </div>
                           </div>
-
                           <div className="flex items-center space-x-2 mb-3">
                             <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-white text-xs">👕</span>
@@ -172,8 +148,6 @@ export function BetSlip({
                               {bet.awayTeam || "Black Diamond FC"}
                             </span>
                           </div>
-
-                          {/* Selection */}
                           <div className="text-white text-sm">
                             <span className="text-gray-400">Selection: </span>
                             <span className="font-medium">
@@ -181,8 +155,6 @@ export function BetSlip({
                             </span>
                           </div>
                         </div>
-
-                        {/* Remove individual bet button */}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -200,8 +172,7 @@ export function BetSlip({
               {/* Stake Controls */}
               <div className="space-y-4 bg-gray-700/50 p-4 rounded-lg">
                 <h3 className="text-white font-medium text-center">Stake & Betting Options</h3>
-                
-                {/* Stake Adjuster */}
+
                 <div className="flex items-center justify-center space-x-4">
                   <Button
                     variant="ghost"
@@ -211,9 +182,7 @@ export function BetSlip({
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
-
                   <div className="text-white text-xl font-bold min-w-16 text-center">${stake}</div>
-
                   <Button
                     variant="ghost"
                     size="icon"
@@ -224,24 +193,6 @@ export function BetSlip({
                   </Button>
                 </div>
 
-                {/* Quick Stake Buttons */}
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {quickStakeAmounts.map((amount) => (
-                    <Button
-                      key={amount}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleStakeChange(amount)}
-                      className={`bg-gray-600 border-gray-500 text-white hover:bg-amber-600 text-xs px-3 py-1 rounded-full transition-colors ${
-                        stake === amount ? "bg-amber-600 ring-2 ring-amber-400" : ""
-                      }`}
-                    >
-                      ${amount}
-                    </Button>
-                  ))}
-                </div>
-
-                {/* Betting Summary */}
                 <div className="bg-gray-800 p-3 rounded space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Total Odds:</span>
@@ -257,7 +208,6 @@ export function BetSlip({
                   </div>
                 </div>
 
-                {/* Auto Accept Changes */}
                 <div className="flex items-center space-x-3 bg-gray-800 p-3 rounded">
                   <Switch
                     checked={autoAcceptChanges}
@@ -269,7 +219,6 @@ export function BetSlip({
                   </span>
                 </div>
 
-                {/* Place Bet Button */}
                 <div className="space-y-2">
                   <Button 
                     onClick={handlePlaceBet}
@@ -288,7 +237,7 @@ export function BetSlip({
                     ) : !isAuthenticated ? (
                       <div className="flex items-center space-x-2">
                         <LogIn className="w-4 h-4" />
-                        <span>Login to Place Bet</span>
+                        <span>Place Bet</span>
                       </div>
                     ) : (
                       <div className="flex items-center space-x-2">

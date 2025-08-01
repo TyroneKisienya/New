@@ -80,7 +80,7 @@ export function TopHeader() {
       </button>
 
       <div className="text-center text-sm text-gray-600">
-        Ещё нет аккаунта?{" "}
+        Don't have an account?{" "}
         <button
           onClick={() => setActiveForm("register")}
           className="text-blue-500 hover:text-blue-600"
@@ -219,121 +219,140 @@ export function TopHeader() {
   )
 
   return (
-    <div className="relative bg-gray-800 border-b border-gray-700 px-2 sm:px-4 py-2">
-      <div className="flex items-center justify-between text-xs sm:text-sm">
-        {/* Left side - Logo and Navigation */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-xs">P</span>
-            </div>
-            <span className="text-yellow-400 font-bold text-sm sm:text-base">PRIMEBET</span>
+  <div className="relative bg-gray-800 border-b border-gray-700 px-2 sm:px-4 py-2">
+    <div className="flex items-center justify-between text-xs sm:text-sm">
+      {/* Left side - Logo */}
+      <div className="flex items-center space-x-2 sm:space-x-4">
+        <div className="flex items-center space-x-2">
+          <div className="w-6 h-6 sm:w-6 sm:h-6 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded flex items-center justify-center">
+            <span className="text-gray-900 font-bold text-sm">P</span>
           </div>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-2 sm:space-x-4 text-gray-400">
-            <span className="hover:text-white cursor-pointer">HOME</span>
-            <span className="hover:text-white cursor-pointer">LIVE</span>
-            <span className="hover:text-white cursor-pointer">LIVE</span>
-            <span className="hover:text-white cursor-pointer">CLICK HERE FOR HELP</span>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="lg:hidden text-gray-400 hover:text-white"
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          <span className="text-yellow-400 font-bold text-base sm:text-lg">PRIMEBET</span>
         </div>
 
-        {/* Right side - Language, Time, Auth buttons */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Language and Time - Hidden on mobile */}
-          <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
-            <div className="flex items-center space-x-1 sm:space-x-2 text-gray-400">
-              <Globe className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>EN</span>
-            </div>
-            <div className="flex items-center space-x-1 sm:space-x-2 text-gray-400">
-              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden md:inline">30/01/25, 12:35</span>
-              <span className="md:hidden">12:35</span>
-            </div>
-          </div>
-
-          {/* Auth Buttons */}
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-white border-gray-600 hover:bg-gray-700 bg-transparent text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
-              onClick={() => setActiveForm("login")}
-            >
-              <span className="hidden sm:inline">Log In</span>
-              <span className="sm:hidden">Login</span>
-            </Button>
-            <Button
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
-              onClick={() => setActiveForm("register")}
-            >
-              <span className="hidden sm:inline">Sign Up</span>
-              <span className="sm:hidden">Join</span>
-            </Button>
-          </div>
+        {/* Desktop Navigation */}
+        <div className="hidden lg:flex items-center space-x-2 sm:space-x-4 text-gray-400">
+          <span className="hover:text-white cursor-pointer">HOME</span>
+          <span className="hover:text-white cursor-pointer">LIVE</span>
+          <span className="hover:text-white cursor-pointer">LIVE</span>
+          <span className="hover:text-white cursor-pointer">CLICK HERE FOR HELP</span>
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
-      {showMobileMenu && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-3 z-40">
-          <div className="flex flex-col space-y-2 text-gray-400 text-sm">
-            <span className="hover:text-white cursor-pointer py-1">HOME</span>
-            <span className="hover:text-white cursor-pointer py-1">LIVE</span>
-            <span className="hover:text-white cursor-pointer py-1">LIVE</span>
-            <span className="hover:text-white cursor-pointer py-1">CLICK HERE FOR HELP</span>
-            <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4" />
-                  <span>EN</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4" />
-                  <span>12:35</span>
-                </div>
+      {/* Right side (sm+): Language + Time + Auth */}
+      <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
+        <div className="hidden sm:flex items-center space-x-2 sm:space-x-4 text-gray-400">
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            <Globe className="w-4 h-4" />
+            <span>EN</span>
+          </div>
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            <Clock className="w-4 h-4" />
+            <span className="hidden md:inline">30/01/25, 12:35</span>
+            <span className="md:hidden">12:35</span>
+          </div>
+        </div>
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-white border-gray-600 hover:bg-gray-700 bg-transparent text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
+            onClick={() => setActiveForm("login")}
+          >
+            <span className="hidden sm:inline">Log In</span>
+            <span className="sm:hidden">Login</span>
+          </Button>
+          <Button
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
+            onClick={() => setActiveForm("register")}
+          >
+            <span className="hidden sm:inline">Sign Up</span>
+            <span className="sm:hidden">Join</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile-only: Right side Globe + Hamburger */}
+      <div className="flex sm:hidden items-center space-x-3">
+        <div className="flex items-center space-x-1 text-gray-400">
+          <Globe className="w-4 h-4" />
+          <span>EN</span>
+        </div>
+        <button
+          className="text-gray-400 hover:text-white"
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+
+    {/* Mobile-only Login/Register under logo */}
+    <div className="flex sm:hidden mt-2 space-x-2">
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-1/2 text-white border-gray-600 hover:bg-gray-700 bg-transparent text-xs h-8"
+        onClick={() => setActiveForm("login")}
+      >
+        Login
+      </Button>
+      <Button
+        size="sm"
+        className="w-1/2 bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+        onClick={() => setActiveForm("register")}
+      >
+        Join
+      </Button>
+    </div>
+
+    {/* Mobile Navigation Menu */}
+    {showMobileMenu && (
+      <div className="lg:hidden absolute top-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-3 z-40">
+        <div className="flex flex-col space-y-2 text-gray-400 text-sm">
+          <span className="hover:text-white cursor-pointer py-1">HOME</span>
+          <span className="hover:text-white cursor-pointer py-1">LIVE</span>
+          <span className="hover:text-white cursor-pointer py-1">LIVE</span>
+          <span className="hover:text-white cursor-pointer py-1">CLICK HERE FOR HELP</span>
+          <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Globe className="w-4 h-4" />
+                <span>EN</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4" />
+                <span>12:35</span>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {/* Modal Overlay */}
-      {activeForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div
-            ref={modalRef}
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md max-h-[95vh] overflow-y-auto"
-          >
-            {/* Header with close button */}
-            <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex justify-end p-3 sm:p-4 pb-0">
-              <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-gray-700 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Form Content */}
-            <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-              {activeForm === "login" && <LoginForm />}
-              {activeForm === "register" && <RegisterForm />}
-            </div>
+    {/* Modal Overlay */}
+    {activeForm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div
+          ref={modalRef}
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md max-h-[95vh] overflow-y-auto"
+        >
+          <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex justify-end p-3 sm:p-4 pb-0">
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-700 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+            {activeForm === "login" && <LoginForm />}
+            {activeForm === "register" && <RegisterForm />}
           </div>
         </div>
-      )}
-    </div>
-  )
+      </div>
+    )}
+  </div>
+)
 }

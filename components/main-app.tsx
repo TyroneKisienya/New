@@ -33,40 +33,49 @@ export function MainApp() {
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Fixed Headers */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-lg">
         <TopHeader />
         <MainHeader betCount={selectedBets.length} onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} />
       </div>
 
-      {/* Main Layout - Fixed positioning */}
-      <div className="fixed top-[8rem] left-0 right-0 bottom-0 flex overflow-hidden">
-        {/* Left Sidebar - Completely Fixed */}
-        <div className="w-72 h-full bg-gray-800 border-r border-gray-700 flex-shrink-0">
-          <Sidebar />
-        </div>
+      {/* Main Layout */}
+      <div className="pt-32 flex-1 flex flex-col overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar */}
+          <div className="hidden lg:block w-72 h-full bg-gray-800 border-r border-gray-700 flex-shrink-0">
+            <Sidebar />
+          </div>
 
-        {/* Middle Content - Scrollable with Footer */}
-        <div className="flex-1 h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto scrollbar-hide">
+          {/* Sidebar for mobile (if applicable) */}
+          <Sidebar />
+
+          {/* Center content + wheel + footer */}
+          <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
             <MainContent onAddToBetSlip={addToBetSlip} isBetSlipOpen={isBetSlipOpen} />
+
+            {/* Wheel - only visible on mobile */}
+            <div className="block lg:hidden px-4 pb-4">
+              <WheelOfFortune />
+            </div>
+
             <Footer />
           </div>
-        </div>
 
-        {/* Right Sidebar - Wheel of Fortune - Completely Fixed */}
-        <div className="w-80 h-full bg-gray-800 border-l border-gray-700 flex-shrink-0 overflow-y-auto scrollbar-hide">
-          <div className="p-4">
-            <WheelOfFortune />
+          {/* Right Sidebar - Desktop Only */}
+          <div className="hidden lg:block w-80 h-full bg-gray-800 border-l border-gray-700 flex-shrink-0 overflow-y-auto scrollbar-hide">
+            <div className="p-4">
+              <WheelOfFortune />
+            </div>
           </div>
-        </div>
 
-        {/* Right Betting Slip - Fixed when open */}
-        <BetSlip
-          bets={selectedBets}
-          onRemoveBet={removeFromBetSlip}
-          isOpen={isBetSlipOpen}
-          onToggle={() => setIsBetSlipOpen(!isBetSlipOpen)}
-        />
+          {/* Bet Slip */}
+          <BetSlip
+            bets={selectedBets}
+            onRemoveBet={removeFromBetSlip}
+            isOpen={isBetSlipOpen}
+            onToggle={() => setIsBetSlipOpen(!isBetSlipOpen)}
+          />
+        </div>
       </div>
     </div>
   )

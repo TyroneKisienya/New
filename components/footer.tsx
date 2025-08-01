@@ -35,7 +35,7 @@ export function Footer() {
           </div>
 
           {/* Right Section - App Downloads */}
-          <div className="flex flex-col space-y-3 md:items-end">
+          <div className="flex flex-wrap gap-3 justify-start md:flex-col md:items-end">
             <a href="#" className="inline-block hover:opacity-80 transition-opacity">
               <img
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/goodplaystore-IiZTQLP7KJFNJtzuYjwr5SVDsjkZfc.png"
@@ -54,7 +54,7 @@ export function Footer() {
         </div>
 
         {/* Payment Methods */}
-        <div className="flex justify-center items-center space-x-8 mb-6">
+        <div className="flex flex-wrap justify-center items-center gap-6 mb-6">
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mastercard-7u3t2KgNY8Q4iGJA8JoRCE3CAaGKXX.png"
             alt="MasterCard"
@@ -83,7 +83,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="text-yellow-400 hover:text-yellow-300 underline transition-colors"
             >
-              this guys
+              DFS
             </a>
           </p>
         </div>

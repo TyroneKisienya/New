@@ -95,9 +95,16 @@ export function FootballMatches({ onAddToBetSlip }: FootballMatchesProps) {
                     onClick={() =>
                       onAddToBetSlip({
                         id: `${match.id}-home`,
+                        matchId: match.id,
+                        homeTeam: match.team1,
+                        awayTeam: match.team2,
+                        selection: match.team1,
+                        eventName: `${match.team1} vs ${match.team2}`,
                         match: `${match.team1} vs ${match.team2}`,
+                        betType: 'home',
                         bet: match.team1,
                         odds: match.odds.home,
+                        league: match.league,
                       })
                     }
                   >
@@ -110,9 +117,16 @@ export function FootballMatches({ onAddToBetSlip }: FootballMatchesProps) {
                     onClick={() =>
                       onAddToBetSlip({
                         id: `${match.id}-draw`,
+                        matchId: match.id,
+                        homeTeam: match.team1,
+                        awayTeam: match.team2,
+                        selection: "Draw",
+                        eventName: `${match.team1} vs ${match.team2}`,
                         match: `${match.team1} vs ${match.team2}`,
+                        betType: 'draw',
                         bet: "Draw",
                         odds: match.odds.draw,
+                        league: match.league,
                       })
                     }
                   >
@@ -125,9 +139,16 @@ export function FootballMatches({ onAddToBetSlip }: FootballMatchesProps) {
                     onClick={() =>
                       onAddToBetSlip({
                         id: `${match.id}-away`,
+                        matchId: match.id,
+                        homeTeam: match.team1,
+                        awayTeam: match.team2,
+                        selection: match.team2,
+                        eventName: `${match.team1} vs ${match.team2}`,
                         match: `${match.team1} vs ${match.team2}`,
+                        betType: 'away',
                         bet: match.team2,
                         odds: match.odds.away,
+                        league: match.league,
                       })
                     }
                   >
@@ -162,6 +183,21 @@ export function FootballMatches({ onAddToBetSlip }: FootballMatchesProps) {
                   variant="outline"
                   size="sm"
                   className="bg-gray-700 border-gray-600 text-white hover:bg-yellow-500 hover:text-gray-900 px-2 py-1 text-xs min-w-12"
+                  onClick={() =>
+                    onAddToBetSlip({
+                      id: `${match.id}-home`,
+                      matchId: match.id,
+                      homeTeam: match.team1,
+                      awayTeam: match.team2,
+                      selection: match.team1,
+                      eventName: `${match.team1} vs ${match.team2}`,
+                      match: `${match.team1} vs ${match.team2}`,
+                      betType: 'home',
+                      bet: match.team1,
+                      odds: match.odds.home,
+                      league: match.league,
+                    })
+                  }
                 >
                   {match.odds.home}
                 </Button>
@@ -169,6 +205,21 @@ export function FootballMatches({ onAddToBetSlip }: FootballMatchesProps) {
                   variant="outline"
                   size="sm"
                   className="bg-gray-700 border-gray-600 text-white hover:bg-yellow-500 hover:text-gray-900 px-2 py-1 text-xs min-w-12"
+                  onClick={() =>
+                    onAddToBetSlip({
+                      id: `${match.id}-draw`,
+                      matchId: match.id,
+                      homeTeam: match.team1,
+                      awayTeam: match.team2,
+                      selection: "Draw",
+                      eventName: `${match.team1} vs ${match.team2}`,
+                      match: `${match.team1} vs ${match.team2}`,
+                      betType: 'draw',
+                      bet: "Draw",
+                      odds: match.odds.draw,
+                      league: match.league,
+                    })
+                  }
                 >
                   {match.odds.draw}
                 </Button>
@@ -176,6 +227,21 @@ export function FootballMatches({ onAddToBetSlip }: FootballMatchesProps) {
                   variant="outline"
                   size="sm"
                   className="bg-gray-700 border-gray-600 text-white hover:bg-yellow-500 hover:text-gray-900 px-2 py-1 text-xs min-w-12"
+                  onClick={() =>
+                    onAddToBetSlip({
+                      id: `${match.id}-away`,
+                      matchId: match.id,
+                      homeTeam: match.team1,
+                      awayTeam: match.team2,
+                      selection: match.team2,
+                      eventName: `${match.team1} vs ${match.team2}`,
+                      match: `${match.team1} vs ${match.team2}`,
+                      betType: 'away',
+                      bet: match.team2,
+                      odds: match.odds.away,
+                      league: match.league,
+                    })
+                  }
                 >
                   {match.odds.away}
                 </Button>
