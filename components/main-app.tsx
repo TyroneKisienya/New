@@ -7,22 +7,29 @@ import { Sidebar } from "@/components/sidebar"
 import { MainContent } from "@/components/main-content"
 import { WheelOfFortune } from "@/components/wheel-of-fortune"
 import { BetSlip } from "@/components/bet-slip"
+import { BottomNavigation } from "./bottom-navigation"
 import { Footer } from "@/components/footer"
 
+// Define the bet type
+interface Bet {
+  id: string
+  type?: string
+  title?: string
+  eventName?: string
+  homeTeam?: string
+  awayTeam?: string
+  odds?: number
+  selection?: string
+  matches?: any[]
+  stake?: number
+  possibleProfit?: number
+}
+
 export function MainApp() {
-  const [selectedBets, setSelectedBets] = useState([
-    {
-      id: "1",
-      type: "acca",
-      title: "Football Acca The Voice Cup",
-      matches: [{ team1: "Burnham United", team2: "Hurst Hammers", odds: 2.44 }],
-      stake: 100,
-      possibleProfit: 244.0,
-    },
-  ])
+  const [selectedBets, setSelectedBets] = useState<Bet[]>([])
   const [isBetSlipOpen, setIsBetSlipOpen] = useState(false)
 
-  const addToBetSlip = (bet: any) => {
+  const addToBetSlip = (bet: Bet) => {
     setSelectedBets((prev) => [...prev, bet])
   }
 
@@ -50,7 +57,7 @@ export function MainApp() {
           <Sidebar />
 
           {/* Center content + wheel + footer */}
-          <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
+          <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide pb-16 lg:pb-0">
             <MainContent onAddToBetSlip={addToBetSlip} isBetSlipOpen={isBetSlipOpen} />
 
             {/* Wheel - only visible on mobile */}
@@ -76,6 +83,14 @@ export function MainApp() {
             onToggle={() => setIsBetSlipOpen(!isBetSlipOpen)}
           />
         </div>
+      </div>
+      
+      {/* Bottom Navigation - Mobile Only */}
+      <div className="block lg:hidden">
+        <BottomNavigation 
+          betCount={selectedBets.length} 
+          onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} 
+        />
       </div>
     </div>
   )

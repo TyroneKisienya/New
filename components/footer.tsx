@@ -89,8 +89,8 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Chat Widget */}
-      <div className="fixed bottom-4 right-4 z-50">
+        {/* Chat Widget */}
+        <div className="fixed bottom-20 right-4 z-50 lg:bottom-4">
         <Button className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 rounded-full px-4 py-2 shadow-lg flex items-center space-x-2">
           <span className="text-sm">Chat with us, we're online!</span>
           <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>

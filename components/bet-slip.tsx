@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
@@ -29,6 +29,21 @@ export function BetSlip({
   const [stake, setStake] = useState(100)
   const [autoAcceptChanges, setAutoAcceptChanges] = useState(true)
   const [isPlacingBet, setIsPlacingBet] = useState(false)
+  const betSlipRef = useRef<HTMLDivElement>(null)
+
+  // Close betslip when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (betSlipRef.current && !betSlipRef.current.contains(event.target as Node) && isOpen) {
+        onToggle()
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen, onToggle])
 
   const adjustStake = (increment: boolean) => {
     setStake((prev) => Math.max(0, prev + (increment ? 10 : -10)))
@@ -36,7 +51,9 @@ export function BetSlip({
 
   const handlePlaceBet = async () => {
     if (!isAuthenticated) {
-      onLogin?.()
+      //trigger login modal
+      const loginButton = document.querySelector('[data-trigger-login')
+      if (loginButton) (loginButton as HTMLElement).click()
       return
     }
 
@@ -70,6 +87,7 @@ export function BetSlip({
 
   return (
     <div
+      ref={betSlipRef}
       className={`fixed right-0 top-[8rem] h-[calc(100vh-8rem)] bg-gray-800 border-l border-gray-700 transition-all duration-300 z-40 ${
         isOpen ? "w-72" : "w-0"
       } overflow-hidden`}

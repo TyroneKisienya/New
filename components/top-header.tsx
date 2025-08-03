@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Globe, Clock, X, User, Mail, Lock, Eye, EyeOff, Phone, Gift, Menu } from "lucide-react"
+import { Globe, Clock, X, User, Mail, Lock, Eye, EyeOff, Phone, Gift, Menu, ChevronDown } from "lucide-react"
+
+interface Country {
+  code: string
+  name: string
+  dialCode: string
+  flag: string
+}
 
 export function TopHeader() {
   const [activeForm, setActiveForm] = useState<"login" | "register" | null>(null)
@@ -10,7 +17,40 @@ export function TopHeader() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false)
+  const [selectedCountry, setSelectedCountry] = useState<Country>({
+    code: "KE",
+    name: "Kenya",
+    dialCode: "+254",
+    flag: "🇰🇪"
+  })
+  const [phoneNumber, setPhoneNumber] = useState("")
+  
   const modalRef = useRef<HTMLDivElement>(null)
+  const countryDropdownRef = useRef<HTMLDivElement>(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Countries list
+  const countries: Country[] = [
+    { code: "KE", name: "Kenya", dialCode: "+254", flag: "🇰🇪" },
+    { code: "UG", name: "Uganda", dialCode: "+256", flag: "🇺🇬" },
+    { code: "TZ", name: "Tanzania", dialCode: "+255", flag: "🇹🇿" },
+    { code: "RW", name: "Rwanda", dialCode: "+250", flag: "🇷🇼" },
+    { code: "ET", name: "Ethiopia", dialCode: "+251", flag: "🇪🇹" },
+    { code: "US", name: "United States", dialCode: "+1", flag: "🇺🇸" },
+    { code: "GB", name: "United Kingdom", dialCode: "+44", flag: "🇬🇧" },
+    { code: "NG", name: "Nigeria", dialCode: "+234", flag: "🇳🇬" },
+    { code: "GH", name: "Ghana", dialCode: "+233", flag: "🇬🇭" },
+    { code: "ZA", name: "South Africa", dialCode: "+27", flag: "🇿🇦" }
+  ]
+
+  //clock and time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Close when clicking outside
   useEffect(() => {
@@ -18,22 +58,26 @@ export function TopHeader() {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setActiveForm(null)
       }
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+        setIsCountryDropdownOpen(false)
+      }
     }
 
-    if (activeForm) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [activeForm])
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const handleClose = () => {
     setActiveForm(null)
     setShowPassword(false)
     setShowConfirmPassword(false)
     setAcceptTerms(false)
+    setIsCountryDropdownOpen(false)
+  }
+
+  const handleCountrySelect = (country: Country) => {
+    setSelectedCountry(country)
+    setIsCountryDropdownOpen(false)
   }
 
   const LoginForm = () => (
@@ -104,16 +148,47 @@ export function TopHeader() {
         />
       </div>
 
+      {/* Enhanced Phone Number Input with Country Picker */}
       <div className="relative">
         <div className="flex">
-          <div className="flex items-center bg-gray-50 border border-gray-200 border-r-0 rounded-l-lg px-2 sm:px-3">
-            <img src="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'%3e%3cpath fill='%23000' d='M0 0h3v1H0z'/%3e%3cpath fill='%23fff' d='M0 1h3v1H0z'/%3e%3cpath fill='%23f00' d='M0 0h3v.67H0z'/%3e%3cpath fill='%23009639' d='M0 1.33h3V2H0z'/%3e%3c/svg%3e" alt="Kenya" className="w-4 sm:w-5 h-2.5 sm:h-3 mr-1 sm:mr-2" />
-            <Phone className="text-gray-400 w-3 sm:w-4 h-3 sm:h-4" />
+          {/* Country Code Picker */}
+          <div className="relative" ref={countryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 border-r-0 rounded-l-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
+            >
+              <span className="text-base sm:text-lg">{selectedCountry.flag}</span>
+              <span className="text-xs sm:text-sm font-medium">{selectedCountry.dialCode}</span>
+              <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+            </button>
+            
+            {/* Country Dropdown */}
+            {isCountryDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                {countries.map((country) => (
+                  <button
+                    key={country.code}
+                    type="button"
+                    onClick={() => handleCountrySelect(country)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-800 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                  >
+                    <span className="text-lg">{country.flag}</span>
+                    <span className="flex-1 text-sm">{country.name}</span>
+                    <span className="text-sm text-gray-500 font-medium">{country.dialCode}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          
+          {/* Phone Number Input */}
           <input
             type="tel"
-            placeholder="+254 712 123456"
-            className="flex-1 pl-2 sm:pl-3 pr-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500 text-sm sm:text-base"
+            placeholder="712 123456"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="flex-1 pl-3 pr-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500 text-sm sm:text-base"
           />
         </div>
       </div>
@@ -248,14 +323,31 @@ export function TopHeader() {
           </div>
           <div className="flex items-center space-x-1 sm:space-x-2">
             <Clock className="w-4 h-4" />
-            <span className="hidden md:inline">30/01/25, 12:35</span>
-            <span className="md:hidden">12:35</span>
+            <span className="hidden md:inline">
+              {currentTime.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "2-digit"
+              })},{" "}
+              {currentTime.toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit"
+              })}
+            </span>
+            <span className="md:hidden">
+              {currentTime.toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit"
+              })}
+            </span>
           </div>
+
         </div>
         <div className="flex items-center space-x-1 sm:space-x-2">
           <Button
             variant="outline"
             size="sm"
+            data-trigger-login
             className="text-white border-gray-600 hover:bg-gray-700 bg-transparent text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
             onClick={() => setActiveForm("login")}
           >
@@ -323,7 +415,12 @@ export function TopHeader() {
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4" />
-                <span>12:35</span>
+                  <span>
+                    {currentTime.toLocaleTimeString("en-GB", {
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
+                  </span>
               </div>
             </div>
           </div>
