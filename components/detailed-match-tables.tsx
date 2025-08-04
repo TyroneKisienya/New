@@ -4,19 +4,51 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp, Star, Loader2, AlertCircle } from "lucide-react"
-import { useLeagueData } from "@/hooks/use-league-data"
+import { useLiveFootballData } from "@/hooks/use-live-football-data"
 
 interface DetailedMatchTablesProps {
   onAddToBetSlip: (bet: any) => void
 }
 
 export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["football", "champions-league"])
-  const { leaguesData, loading, error, usingMockData, refetch } = useLeagueData()
+  const [expandedSections, setExpandedSections] = useState<string[]>(["football"])
+  const { matches, loading, error, refetch, isUsingMockData } = useLiveFootballData()
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
   }
+
+  // Group matches by league
+  const groupedMatches = matches.reduce((groups: any, match) => {
+    const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
+    if (!groups[leagueKey]) {
+      groups[leagueKey] = {
+        name: match.league,
+        logo: match.leagueLogo,
+        matches: []
+      }
+    }
+    groups[leagueKey].matches.push({
+      id: match.id,
+      time: match.time,
+      status: match.status.toUpperCase(),
+      homeTeam: {
+        name: match.homeTeam,
+        logo: match.homeTeamLogo
+      },
+      awayTeam: {
+        name: match.awayTeam,
+        logo: match.awayTeamLogo
+      },
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      venue: match.venue,
+      referee: match.referee,
+      odds: match.odds,
+      additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
+    })
+    return groups
+  }, {})
 
   const renderFootballSection = () => {
     const isFootballExpanded = expandedSections.includes("football")
@@ -30,13 +62,13 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-white font-medium">⚽ Football</span>
-              {usingMockData && (
+              {isUsingMockData && (
                 <div className="flex items-center space-x-1 text-yellow-400">
                   <AlertCircle className="w-4 h-4" />
-                  <span className="text-xs">Demo Data</span>
+                  <span className="text-xs">Fallback Data</span>
                 </div>
               )}
-              {error && !usingMockData && (
+              {error && !isUsingMockData && (
                 <div className="flex items-center space-x-1 text-orange-400">
                   <AlertCircle className="w-4 h-4" />
                   <span className="text-xs">API Error</span>
@@ -63,7 +95,7 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
 
         {isFootballExpanded && (
           <CardContent className="p-0">
-            {Object.entries(leaguesData).map(([leagueKey, leagueData]) => renderLeague(leagueKey, leagueData))}
+            {Object.entries(groupedMatches).map(([leagueKey, leagueData]) => renderLeague(leagueKey, leagueData))}
           </CardContent>
         )}
       </Card>
@@ -166,76 +198,85 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                 </div>
 
                 {/* Betting Odds */}
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
-                    onClick={() =>
-                      onAddToBetSlip({
-                        id: `${match.id}-home`,
-                        matchId: match.id,
-                        homeTeam: match.homeTeam.name,
-                        awayTeam: match.awayTeam.name,
-                        selection: match.homeTeam.name,
-                        eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                        match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                        betType: 'home',
-                        bet: match.homeTeam.name,
-                        odds: Number.parseFloat(match.odds.home.toFixed(2)),
-                        league: leagueData.name,
-                      })
-                    }
-                  >
-                    {match.odds.home.toFixed(2)}
-                  </Button>
+                {match.odds && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
+                      onClick={() =>
+                        onAddToBetSlip({
+                          id: `${match.id}-home`,
+                          matchId: match.id,
+                          homeTeam: match.homeTeam.name,
+                          awayTeam: match.awayTeam.name,
+                          selection: match.homeTeam.name,
+                          eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                          match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                          betType: 'home',
+                          bet: match.homeTeam.name,
+                          odds: Number.parseFloat(match.odds.home.toFixed(2)),
+                          league: leagueData.name,
+                        })
+                      }
+                    >
+                      {match.odds.home.toFixed(2)}
+                    </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
-                    onClick={() =>
-                      onAddToBetSlip({
-                        id: `${match.id}-draw`,
-                        matchId: match.id,
-                        homeTeam: match.homeTeam.name,
-                        awayTeam: match.awayTeam.name,
-                        selection: "Draw",
-                        eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                        match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                        betType: 'draw',
-                        bet: "Draw",
-                        odds: Number.parseFloat(match.odds.draw.toFixed(2)),
-                        league: leagueData.name,
-                      })
-                    }
-                  >
-                    {match.odds.draw.toFixed(2)}
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
+                      onClick={() =>
+                        onAddToBetSlip({
+                          id: `${match.id}-draw`,
+                          matchId: match.id,
+                          homeTeam: match.homeTeam.name,
+                          awayTeam: match.awayTeam.name,
+                          selection: "Draw",
+                          eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                          match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                          betType: 'draw',
+                          bet: "Draw",
+                          odds: Number.parseFloat(match.odds.draw.toFixed(2)),
+                          league: leagueData.name,
+                        })
+                      }
+                    >
+                      {match.odds.draw.toFixed(2)}
+                    </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
-                    onClick={() =>
-                      onAddToBetSlip({
-                        id: `${match.id}-away`,
-                        matchId: match.id,
-                        homeTeam: match.homeTeam.name,
-                        awayTeam: match.awayTeam.name,
-                        selection: match.awayTeam.name,
-                        eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                        match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                        betType: 'away',
-                        bet: match.awayTeam.name,
-                        odds: Number.parseFloat(match.odds.away.toFixed(2)),
-                        league: leagueData.name,
-                      })
-                    }
-                  >
-                    {match.odds.away.toFixed(2)}
-                  </Button>
-                </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
+                      onClick={() =>
+                        onAddToBetSlip({
+                          id: `${match.id}-away`,
+                          matchId: match.id,
+                          homeTeam: match.homeTeam.name,
+                          awayTeam: match.awayTeam.name,
+                          selection: match.awayTeam.name,
+                          eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                          match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+                          betType: 'away',
+                          bet: match.awayTeam.name,
+                          odds: Number.parseFloat(match.odds.away.toFixed(2)),
+                          league: leagueData.name,
+                        })
+                      }
+                    >
+                      {match.odds.away.toFixed(2)}
+                    </Button>
+                  </div>
+                )}
+
+                {/* No odds available */}
+                {!match.odds && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-400 text-sm">Odds not available</span>
+                  </div>
+                )}
 
                 {/* Star Icon */}
                 <div className="pl-3">
@@ -247,11 +288,18 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
             ))}
           </div>
         )}
+
+        {/* No matches in this league */}
+        {isExpanded && leagueData.matches.length === 0 && (
+          <div className="bg-white p-4 text-center text-gray-500">
+            No matches available for this league
+          </div>
+        )}
       </div>
     )
   }
 
-  if (loading && Object.keys(leaguesData).length === 0) {
+  if (loading && matches.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center space-x-2">
@@ -264,12 +312,29 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
 
   return (
     <div className="space-y-4">
-      {renderFootballSection()}
+      {Object.keys(groupedMatches).length > 0 ? (
+        renderFootballSection()
+      ) : (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-400 mb-2">No football matches available</p>
+            <p className="text-gray-500 text-sm mb-4">Check back later for live matches</p>
+            <Button
+              variant="outline"
+              onClick={refetch}
+              className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
+            >
+              Refresh Data
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Other Sports - Collapsed by default */}
       <div className="space-y-2">
         {["Hockey", "Tennis", "Basketball", "Baseball"].map((sport) => (
-          <Card key={sport} className="bg-gray-800 border-gray-700">
+          <CardContent key={sport} className="bg-gray-800 border-gray-700">
             <CardHeader
               className="py-3 px-4 cursor-pointer hover:bg-gray-700"
               onClick={() => toggleSection(sport.toLowerCase())}
@@ -277,11 +342,12 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="text-white font-medium">🏒 {sport}</span>
+                  <span className="text-gray-400 text-xs">(Coming Soon)</span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </div>
             </CardHeader>
-          </Card>
+          </CardContent>
         ))}
       </div>
     </div>
