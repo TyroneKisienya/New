@@ -3,9 +3,10 @@ import { Globe, Clock, X, Menu } from "lucide-react"
 import { supabase } from '@/lib/supabaseClient'
 import LoginPage from './auth/LoginPage'
 import RegisterPage from './auth/RegisterPage'
+import ForgotPasswordPage from './auth/ForgotPasswordPage'
 
 export default function TopHeader() {
-  const [activeForm, setActiveForm] = useState<"login" | "register" | null>(null)
+  const [activeForm, setActiveForm] = useState<"login" | "register" | "forgot-password" | null>(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [session, setSession] = useState<any>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -68,6 +69,7 @@ export default function TopHeader() {
 
   const switchToRegister = () => setActiveForm("register")
   const switchToLogin = () => setActiveForm("login")
+  const switchToForgotPassword = () => setActiveForm("forgot-password")
 
   return (
     <div className="relative bg-gray-800 border-b border-gray-700 px-2 sm:px-4 py-2">
@@ -237,19 +239,23 @@ export default function TopHeader() {
             ref={modalRef}
             className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md max-h-[95vh] overflow-y-auto"
           >
-            <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex justify-end p-3 sm:p-4 pb-0">
-              <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-gray-700 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Only show close button for login and register pages (ForgotPasswordPage has its own) */}
+            {activeForm !== "forgot-password" && (
+              <div className="sticky top-0 z-10 bg-white rounded-t-2xl flex justify-end p-3 sm:p-4 pb-0">
+                <button
+                  onClick={handleClose}
+                  className="text-gray-400 hover:text-gray-700 p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
             <div className="px-4 sm:px-6 pb-4 sm:pb-6">
               {activeForm === "login" && (
                 <LoginPage
                   onClose={handleClose}
                   onSwitchToRegister={switchToRegister}
+                  onSwitchToForgotPassword={switchToForgotPassword}
                   onLoginSuccess={handleLoginSuccess}
                 />
               )}
@@ -257,6 +263,13 @@ export default function TopHeader() {
                 <RegisterPage
                   onClose={handleClose}
                   onSwitchToLogin={switchToLogin}
+                />
+              )}
+              {activeForm === "forgot-password" && (
+                <ForgotPasswordPage
+                  onClose={handleClose}
+                  onSwitchToLogin={switchToLogin}
+                  onSwitchToRegister={switchToRegister}
                 />
               )}
             </div>

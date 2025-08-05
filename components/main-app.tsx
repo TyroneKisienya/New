@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { supabase } from '@/lib/supabaseClient'
+import type { Session } from '@supabase/supabase-js'
 import TopHeader from "@/components/top-header"
 import { MainHeader } from "@/components/main-header"
 import { Sidebar } from "@/components/sidebar"
@@ -9,6 +11,7 @@ import { WheelOfFortune } from "@/components/wheel-of-fortune"
 import { BetSlip } from "@/components/bet-slip"
 import { BottomNavigation } from "./bottom-navigation"
 import { Footer } from "@/components/footer"
+import ResetPasswordPage from "@/components/reset-password-page"
 
 // Define the bet type
 interface Bet {
@@ -28,6 +31,50 @@ interface Bet {
 export function MainApp() {
   const [selectedBets, setSelectedBets] = useState<Bet[]>([])
   const [isBetSlipOpen, setIsBetSlipOpen] = useState(false)
+  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [session, setSession] = useState<Session | null>(null)
+
+  useEffect(() => {
+    // Check for password recovery session on app load
+    const checkForPasswordRecovery = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      // Check URL parameters for password recovery
+      const urlParams = new URLSearchParams(window.location.search)
+      const accessToken = urlParams.get('access_token')
+      const refreshToken = urlParams.get('refresh_token')
+      const type = urlParams.get('type')
+      
+      if (type === 'recovery' && accessToken && refreshToken) {
+        // Set the session for password recovery
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        })
+        
+        if (!error && data.session) {
+          setSession(data.session)
+          setShowResetPassword(true)
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname)
+        }
+      }
+    }
+
+    checkForPasswordRecovery()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setSession(session)
+          setShowResetPassword(true)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const addToBetSlip = (bet: Bet) => {
     setSelectedBets((prev) => [...prev, bet])
@@ -35,6 +82,16 @@ export function MainApp() {
 
   const removeFromBetSlip = (betId: string) => {
     setSelectedBets((prev) => prev.filter((bet) => bet.id !== betId))
+  }
+
+  const handleResetPasswordComplete = () => {
+    setShowResetPassword(false)
+    setSession(null)
+  }
+
+  // Show reset password page if needed
+  if (showResetPassword && session) {
+    return <ResetPasswordPage onComplete={handleResetPasswordComplete} />
   }
 
   return (

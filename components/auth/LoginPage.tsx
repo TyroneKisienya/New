@@ -5,10 +5,11 @@ import { supabase } from '@/lib/supabaseClient'
 interface LoginPageProps {
   onClose: () => void
   onSwitchToRegister: () => void
+  onSwitchToForgotPassword: () => void // Add this new prop
   onLoginSuccess: (session: any) => void
 }
 
-export default function LoginPage({ onClose, onSwitchToRegister, onLoginSuccess }: LoginPageProps) {
+export default function LoginPage({ onClose, onSwitchToRegister, onSwitchToForgotPassword, onLoginSuccess }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loginData, setLoginData] = useState({ email: '', password: '' })
@@ -91,9 +92,13 @@ export default function LoginPage({ onClose, onSwitchToRegister, onLoginSuccess 
             <input type="checkbox" className="mr-2" />
             <span className="text-gray-600">Remember me</span>
           </label>
-          <a href="#" className="text-blue-500 hover:text-blue-600">
+          <button
+            type="button"
+            onClick={onSwitchToForgotPassword}
+            className="text-blue-500 hover:text-blue-600 text-left sm:text-right"
+          >
             Forgot your password?
-          </a>
+          </button>
         </div>
 
         <button 
