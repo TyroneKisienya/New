@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { TopHeader } from "@/components/top-header"
+import TopHeader from "@/components/top-header"
 import { MainHeader } from "@/components/main-header"
 import { Sidebar } from "@/components/sidebar"
 import { MainContent } from "@/components/main-content"
