@@ -33,6 +33,7 @@ export function MainApp() {
   const [isBetSlipOpen, setIsBetSlipOpen] = useState(false)
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
     // Check for password recovery session on app load
@@ -102,18 +103,19 @@ export function MainApp() {
         <MainHeader betCount={selectedBets.length} onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} />
       </div>
 
-      {/* Main Layout */}
+      {/* Sidebar component - handles its own positioning, pass mobile control */}
+      <Sidebar 
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+      />
+
+      {/* Main Layout - adjusted for fixed sidebars */}
       <div className="pt-32 flex-1 flex flex-col overflow-hidden">
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar */}
-          <div className="hidden lg:block w-72 h-full bg-gray-800 border-r border-gray-700 flex-shrink-0">
-            <Sidebar />
-          </div>
+          {/* Left spacing for desktop sidebar */}
+          <div className="hidden lg:block w-64 flex-shrink-0"></div>
 
-          {/* Sidebar for mobile (if applicable) */}
-          <Sidebar />
-
-          {/* Center content + wheel + footer */}
+          {/* Center content */}
           <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide pb-16 lg:pb-0">
             <MainContent onAddToBetSlip={addToBetSlip} isBetSlipOpen={isBetSlipOpen} />
 
@@ -125,12 +127,8 @@ export function MainApp() {
             <Footer />
           </div>
 
-          {/* Right Sidebar - Desktop Only */}
-          <div className="hidden lg:block w-80 h-full bg-gray-800 border-l border-gray-700 flex-shrink-0 overflow-y-auto scrollbar-hide">
-            <div className="p-4">
-              <WheelOfFortune />
-            </div>
-          </div>
+          {/* Right spacing for desktop wheel sidebar */}
+          <div className="hidden lg:block w-80 flex-shrink-0"></div>
 
           {/* Bet Slip */}
           <BetSlip
@@ -141,12 +139,22 @@ export function MainApp() {
           />
         </div>
       </div>
+
+      {/* Fixed Right Sidebar - Desktop Only with Fixed Wheel */}
+      <div className="hidden lg:block fixed top-32 right-0 w-80 h-[calc(100vh-8rem)] bg-gray-800 border-l border-gray-700 z-30 overflow-y-auto">
+        <div className="p-4 h-full flex items-start">
+          <div className="w-full">
+            <WheelOfFortune />
+          </div>
+        </div>
+      </div>
       
       {/* Bottom Navigation - Mobile Only */}
       <div className="block lg:hidden">
         <BottomNavigation 
           betCount={selectedBets.length} 
-          onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} 
+          onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)}
+          onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
       </div>
     </div>
