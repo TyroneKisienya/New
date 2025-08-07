@@ -248,7 +248,7 @@ export function useLiveFootballData() {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchLiveMatches()
-    }, 30000) // 30 seconds
+    }, 180000) // 30 minutes
 
     return () => clearInterval(interval)
   }, [fetchLiveMatches])

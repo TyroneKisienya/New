@@ -3,8 +3,6 @@ import { PromoBanner } from "@/components/promo-banner"
 import { PopularEvents } from "@/components/popular-events"
 import { TopLeagues } from "@/components/top-leagues"
 import { DetailedMatchTables } from "@/components/detailed-match-tables"
-import { RealSportsGrid } from "@/components/real-sports-grid"
-import { FixturesGrid }  from "@/components/fixtures-grid"
 
 interface MainContentProps {
   onAddToBetSlip: (bet: any) => void
@@ -20,10 +18,7 @@ export function MainContent({ onAddToBetSlip, isBetSlipOpen }: MainContentProps)
         <TopLeagues />
         
         {/* Live Matches Section */}
-        <RealSportsGrid onAddToBetSlip={onAddToBetSlip} />
-        
-        {/* Fixtures Section - Right after live matches */}
-        <FixturesGrid onAddToBetSlip={onAddToBetSlip} />
+        <DetailedMatchTables onAddToBetSlip={onAddToBetSlip} />
       </div>
     </div>
   )
