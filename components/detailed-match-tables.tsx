@@ -3,16 +3,29 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronUp, Star, Loader2, AlertCircle } from "lucide-react"
+import { ChevronDown, ChevronUp, Star, Loader2, AlertCircle, ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 import { useLiveFootballData } from "@/hooks/use-live-football-data"
+import { useFixtureData } from "@/hooks/use-fixture-data"
 
 interface DetailedMatchTablesProps {
   onAddToBetSlip: (bet: any) => void
 }
 
 export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["football"])
+  const [expandedSections, setExpandedSections] = useState<string[]>(["football", "fixtures"])
   const { matches, loading, error, refetch, isUsingMockData } = useLiveFootballData()
+  const { 
+    fixtures, 
+    loading: fixtureLoading, 
+    error: fixtureError, 
+    selectedDate,
+    refetch: refetchFixtures,
+    goToPreviousDate,
+    goToNextDate,
+    goToToday,
+    canGoToPrevious,
+    canGoToNext
+  } = useFixtureData()
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
@@ -20,6 +33,38 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
 
   // Group matches by league
   const groupedMatches = matches.reduce((groups: any, match) => {
+    const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
+    if (!groups[leagueKey]) {
+      groups[leagueKey] = {
+        name: match.league,
+        logo: match.leagueLogo,
+        matches: []
+      }
+    }
+    groups[leagueKey].matches.push({
+      id: match.id,
+      time: match.time,
+      status: match.status.toUpperCase(),
+      homeTeam: {
+        name: match.homeTeam,
+        logo: match.homeTeamLogo
+      },
+      awayTeam: {
+        name: match.awayTeam,
+        logo: match.awayTeamLogo
+      },
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      venue: match.venue,
+      referee: match.referee,
+      odds: match.odds,
+      additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
+    })
+    return groups
+  }, {})
+
+  // Group fixtures by league (similar to live matches)
+  const groupedFixtures = fixtures.reduce((groups: any, match) => {
     const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
     if (!groups[leagueKey]) {
       groups[leagueKey] = {
@@ -61,7 +106,7 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-white font-medium">⚽ Football</span>
+              <span className="text-white font-medium">⚽ Live Football</span>
               {isUsingMockData && (
                 <div className="flex items-center space-x-1 text-yellow-400">
                   <AlertCircle className="w-4 h-4" />
@@ -102,8 +147,122 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
     )
   }
 
+  const renderFixtureSection = () => {
+    const isFixtureExpanded = expandedSections.includes("fixtures")
+
+    return (
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader
+          className="bg-gray-700 text-white py-3 px-4 cursor-pointer hover:bg-gray-600 transition-colors"
+          onClick={() => toggleSection("fixtures")}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-white font-medium">📅 Fixtures</span>
+              {fixtureError && (
+                <div className="flex items-center space-x-1 text-orange-400">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="text-xs">API Error</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              {fixtureLoading && <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  refetchFixtures()
+                }}
+                className="text-yellow-400 hover:text-yellow-300 text-xs px-2 py-1"
+              >
+                Refresh
+              </Button>
+              {isFixtureExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </div>
+        </CardHeader>
+
+        {isFixtureExpanded && (
+          <CardContent className="p-0">
+            {/* Date Navigation */}
+            <div className="bg-gray-750 border-b border-gray-700 p-4">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToPreviousDate}
+                  disabled={!canGoToPrevious || fixtureLoading}
+                  className="text-white hover:text-yellow-400 disabled:opacity-50"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Previous
+                </Button>
+
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-yellow-400" />
+                  <span className="text-white font-medium">
+                    {selectedDate.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </span>
+                  {selectedDate.toDateString() !== new Date().toDateString() && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={goToToday}
+                      className="text-yellow-400 hover:text-yellow-300 text-xs"
+                    >
+                      Today
+                    </Button>
+                  )}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToNextDate}
+                  disabled={!canGoToNext || fixtureLoading}
+                  className="text-white hover:text-yellow-400 disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Fixtures Content */}
+            {Object.keys(groupedFixtures).length > 0 ? (
+              Object.entries(groupedFixtures).map(([leagueKey, leagueData]) => 
+                renderLeague(`fixture-${leagueKey}`, leagueData)
+              )
+            ) : !fixtureLoading ? (
+              <div className="bg-white p-8 text-center">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 mb-2">No fixtures available for this date</p>
+                <p className="text-gray-500 text-sm mb-4">Try selecting a different date</p>
+                <Button
+                  variant="outline"
+                  onClick={refetchFixtures}
+                  className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                >
+                  Refresh Data
+                </Button>
+              </div>
+            ) : null}
+          </CardContent>
+        )}
+      </Card>
+    )
+  }
+
   const renderLeague = (leagueKey: string, leagueData: any) => {
     const isExpanded = expandedSections.includes(leagueKey)
+    const isFixtureLeague = leagueKey.startsWith('fixture-')
 
     return (
       <div key={leagueKey} className="border-t border-gray-700">
@@ -122,7 +281,10 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                   e.currentTarget.src = "/placeholder.svg?height=20&width=20&text=🏆"
                 }}
               />
-              <span className="font-semibold text-sm">🏆 {leagueData.name}</span>
+              <span className="font-semibold text-sm">
+                🏆 {leagueData.name}
+                {isFixtureLeague && " (Fixtures)"}
+              </span>
               <span className="text-xs opacity-75">({leagueData.matches.length} matches)</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -155,6 +317,11 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                       <div className="flex items-center space-x-1">
                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                         <span className="text-red-600 text-xs font-bold">LIVE</span>
+                      </div>
+                    )}
+                    {match.status === "FINISHED" && (
+                      <div className="flex items-center space-x-1">
+                        <span className="text-green-600 text-xs font-bold">FT</span>
                       </div>
                     )}
                     {match.venue && <span className="text-gray-400 text-xs">📍 {match.venue}</span>}
@@ -198,7 +365,7 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                 </div>
 
                 {/* Betting Odds */}
-                {match.odds && (
+                {match.odds && match.status !== "FINISHED" && (
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
@@ -299,7 +466,7 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
     )
   }
 
-  if (loading && matches.length === 0) {
+  if (loading && matches.length === 0 && fixtureLoading && fixtures.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center space-x-2">
@@ -312,13 +479,14 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
 
   return (
     <div className="space-y-4">
+      {/* Live Football Section */}
       {Object.keys(groupedMatches).length > 0 ? (
         renderFootballSection()
       ) : (
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-8 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-400 mb-2">No football matches available</p>
+            <p className="text-gray-400 mb-2">No live football matches available</p>
             <p className="text-gray-500 text-sm mb-4">Check back later for live matches</p>
             <Button
               variant="outline"
@@ -331,10 +499,13 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
         </Card>
       )}
 
+      {/* Fixture Section */}
+      {renderFixtureSection()}
+
       {/* Other Sports - Collapsed by default */}
       <div className="space-y-2">
         {["Hockey", "Tennis", "Basketball", "Baseball"].map((sport) => (
-          <CardContent key={sport} className="bg-gray-800 border-gray-700">
+          <Card key={sport} className="bg-gray-800 border-gray-700">
             <CardHeader
               className="py-3 px-4 cursor-pointer hover:bg-gray-700"
               onClick={() => toggleSection(sport.toLowerCase())}
@@ -347,7 +518,7 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </div>
             </CardHeader>
-          </CardContent>
+          </Card>
         ))}
       </div>
     </div>
