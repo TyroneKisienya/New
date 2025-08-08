@@ -1,21 +1,63 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp, Star, Loader2, AlertCircle, ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 import { useLiveFootballData } from "@/hooks/use-live-football-data"
 import { useFixtureData } from "@/hooks/use-fixture-data"
 
-interface DetailedMatchTablesProps {
-  onAddToBetSlip: (bet: any) => void
+interface Match {
+  id: string
+  league: string
+  leagueLogo?: string
+  homeTeam: string
+  awayTeam: string
+  homeTeamLogo?: string
+  awayTeamLogo?: string
+  homeScore: number | null
+  awayScore: number | null
+  time: string
+  status: string
+  venue?: string
+  referee?: string
+  odds?: {
+    home: number
+    draw: number
+    away: number
+  }
 }
 
-export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps) {
+interface FilterStats {
+  totalMatches: number
+  filteredMatches: number
+  totalFixtures: number
+  filteredFixtures: number
+}
+
+interface DetailedMatchTablesProps {
+  onAddToBetSlip: (bet: any) => void
+  selectedLeagues?: string[]
+  filteredMatches?: Match[]
+  filteredFixtures?: Match[]
+  onClearFilters?: () => void
+  filterStats?: FilterStats
+}
+
+export function DetailedMatchTables({ 
+  onAddToBetSlip, 
+  selectedLeagues = [],
+  filteredMatches = [],
+  filteredFixtures = [],
+  onClearFilters,
+  filterStats
+}: DetailedMatchTablesProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(["football", "fixtures"])
-  const { matches, loading, error, refetch, isUsingMockData } = useLiveFootballData()
+  
+  // Use the original hooks as fallback when filtered data is not provided
+  const { matches: originalMatches, loading, error, refetch, isUsingMockData } = useLiveFootballData()
   const { 
-    fixtures, 
+    fixtures: originalFixtures, 
     loading: fixtureLoading, 
     error: fixtureError, 
     selectedDate,
@@ -27,73 +69,123 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
     canGoToNext
   } = useFixtureData()
 
+  // Use filtered data if provided, otherwise use original data
+  const matches = filteredMatches.length > 0 || selectedLeagues.length > 0 ? filteredMatches : originalMatches
+  const fixtures = filteredFixtures.length > 0 || selectedLeagues.length > 0 ? filteredFixtures : originalFixtures
+
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
   }
 
-  // Group matches by league
-  const groupedMatches = matches.reduce((groups: any, match) => {
-    const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
-    if (!groups[leagueKey]) {
-      groups[leagueKey] = {
-        name: match.league,
-        logo: match.leagueLogo,
-        matches: []
-      }
-    }
-    groups[leagueKey].matches.push({
-      id: match.id,
-      time: match.time,
-      status: match.status.toUpperCase(),
-      homeTeam: {
-        name: match.homeTeam,
-        logo: match.homeTeamLogo
-      },
-      awayTeam: {
-        name: match.awayTeam,
-        logo: match.awayTeamLogo
-      },
-      homeScore: match.homeScore,
-      awayScore: match.awayScore,
-      venue: match.venue,
-      referee: match.referee,
-      odds: match.odds,
-      additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
-    })
-    return groups
-  }, {})
+  // Add a filter status indicator
+  const renderFilterStatus = () => {
+    if (selectedLeagues.length === 0) return null
 
-  // Group fixtures by league (similar to live matches)
-  const groupedFixtures = fixtures.reduce((groups: any, match) => {
-    const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
-    if (!groups[leagueKey]) {
-      groups[leagueKey] = {
-        name: match.league,
-        logo: match.leagueLogo,
-        matches: []
+    return (
+      <div className="mb-4 bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-yellow-400 text-sm font-medium">
+              Filtered by {selectedLeagues.length} league{selectedLeagues.length !== 1 ? 's' : ''}
+            </span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {selectedLeagues.slice(0, 3).map(league => (
+                <span key={league} className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded">
+                  {league}
+                </span>
+              ))}
+              {selectedLeagues.length > 3 && (
+                <span className="text-xs text-yellow-400">+{selectedLeagues.length - 3} more</span>
+              )}
+            </div>
+            {filterStats && (
+              <div className="text-xs text-yellow-300 mt-1">
+                {filterStats.filteredMatches}/{filterStats.totalMatches} matches • {filterStats.filteredFixtures}/{filterStats.totalFixtures} fixtures
+              </div>
+            )}
+          </div>
+          {onClearFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearFilters}
+              className="text-yellow-400 hover:text-yellow-300"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Group matches by league
+  const groupedMatches = useMemo(() => {
+    return matches.reduce((groups: any, match) => {
+      const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
+      if (!groups[leagueKey]) {
+        groups[leagueKey] = {
+          name: match.league,
+          logo: match.leagueLogo,
+          matches: []
+        }
       }
-    }
-    groups[leagueKey].matches.push({
-      id: match.id,
-      time: match.time,
-      status: match.status.toUpperCase(),
-      homeTeam: {
-        name: match.homeTeam,
-        logo: match.homeTeamLogo
-      },
-      awayTeam: {
-        name: match.awayTeam,
-        logo: match.awayTeamLogo
-      },
-      homeScore: match.homeScore,
-      awayScore: match.awayScore,
-      venue: match.venue,
-      referee: match.referee,
-      odds: match.odds,
-      additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
-    })
-    return groups
-  }, {})
+      groups[leagueKey].matches.push({
+        id: match.id,
+        time: match.time,
+        status: match.status.toUpperCase(),
+        homeTeam: {
+          name: match.homeTeam,
+          logo: match.homeTeamLogo
+        },
+        awayTeam: {
+          name: match.awayTeam,
+          logo: match.awayTeamLogo
+        },
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+        venue: match.venue,
+        referee: match.referee,
+        odds: match.odds,
+        additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
+      })
+      return groups
+    }, {})
+  }, [matches])
+
+  // Group fixtures by league
+  const groupedFixtures = useMemo(() => {
+    return fixtures.reduce((groups: any, match) => {
+      const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
+      if (!groups[leagueKey]) {
+        groups[leagueKey] = {
+          name: match.league,
+          logo: match.leagueLogo,
+          matches: []
+        }
+      }
+      groups[leagueKey].matches.push({
+        id: match.id,
+        time: match.time,
+        status: match.status.toUpperCase(),
+        homeTeam: {
+          name: match.homeTeam,
+          logo: match.homeTeamLogo
+        },
+        awayTeam: {
+          name: match.awayTeam,
+          logo: match.awayTeamLogo
+        },
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+        venue: match.venue,
+        referee: match.referee,
+        odds: match.odds,
+        additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
+      })
+      return groups
+    }, {})
+  }, [fixtures])
 
   const renderFootballSection = () => {
     const isFootballExpanded = expandedSections.includes("football")
@@ -241,18 +333,42 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
                 renderLeague(`fixture-${leagueKey}`, leagueData)
               )
             ) : !fixtureLoading ? (
-              <div className="bg-white p-8 text-center">
-                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600 mb-2">No fixtures available for this date</p>
-                <p className="text-gray-500 text-sm mb-4">Try selecting a different date</p>
-                <Button
-                  variant="outline"
-                  onClick={refetchFixtures}
-                  className="text-gray-600 border-gray-300 hover:bg-gray-50"
-                >
-                  Refresh Data
-                </Button>
-              </div>
+              selectedLeagues.length > 0 ? (
+                <div className="bg-white p-8 text-center">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+                  <p className="text-yellow-600 mb-2">No fixtures for selected leagues</p>
+                  <p className="text-gray-500 text-sm mb-4">Try selecting different leagues or clear your filters</p>
+                  {onClearFilters && (
+                    <Button
+                      variant="outline"
+                      onClick={onClearFilters}
+                      className="text-yellow-600 border-yellow-400 hover:bg-yellow-50 mr-2"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={refetchFixtures}
+                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                  >
+                    Refresh Data
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-white p-8 text-center">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600 mb-2">No fixtures available for this date</p>
+                  <p className="text-gray-500 text-sm mb-4">Try selecting a different date</p>
+                  <Button
+                    variant="outline"
+                    onClick={refetchFixtures}
+                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                  >
+                    Refresh Data
+                  </Button>
+                </div>
+              )
             ) : null}
           </CardContent>
         )}
@@ -479,9 +595,38 @@ export function DetailedMatchTables({ onAddToBetSlip }: DetailedMatchTablesProps
 
   return (
     <div className="space-y-4">
+      {/* Filter Status */}
+      {renderFilterStatus()}
+      
       {/* Live Football Section */}
       {Object.keys(groupedMatches).length > 0 ? (
         renderFootballSection()
+      ) : selectedLeagues.length > 0 && !loading ? (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+            <p className="text-yellow-400 mb-2">No live matches for selected leagues</p>
+            <p className="text-gray-500 text-sm mb-4">
+              Try selecting different leagues or clear your filters
+            </p>
+            {onClearFilters && (
+              <Button
+                variant="outline"
+                onClick={onClearFilters}
+                className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10 mr-2"
+              >
+                Clear Filters
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={refetch}
+              className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
+            >
+              Refresh Data
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-8 text-center">

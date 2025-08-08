@@ -16,6 +16,11 @@ import LoginPage from "@/components/auth/LoginPage"
 import RegisterPage from "@/components/auth/RegisterPage"
 import ForgotPasswordPage from "@/components/auth/ForgotPasswordPage"
 
+// Import the new hooks
+import { useLeagueFilter } from "@/hooks/use-league-filter"
+import { useLiveFootballData } from "@/hooks/use-live-football-data"
+import { useFixtureData } from "@/hooks/use-fixture-data"
+
 // Define the bet type
 interface Bet {
   id: string
@@ -94,6 +99,22 @@ export function MainApp() {
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [authView, setAuthView] = useState<'login' | 'register' | 'forgot-password'>('login')
+
+  // Get match data from your existing hooks
+  const { matches } = useLiveFootballData()
+  const { fixtures } = useFixtureData()
+
+  // Use the league filter hook
+  const {
+    selectedLeagues,
+    availableLeagues,
+    filteredMatches,
+    filteredFixtures,
+    handleLeagueSelection,
+    clearFilters,
+    hasActiveFilters,
+    filterStats
+  } = useLeagueFilter({ matches, fixtures })
 
   useEffect(() => {
     // Check for existing session on component mount
@@ -220,10 +241,13 @@ export function MainApp() {
         <MainHeader betCount={selectedBets.length} onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} />
       </div>
 
-      {/* Sidebar component - handles its own positioning, pass mobile control */}
+      {/* Sidebar with league filtering and available leagues */}
       <Sidebar 
         isMobileSidebarOpen={isMobileSidebarOpen}
         setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+        onLeagueSelect={handleLeagueSelection}
+        availableLeagues={availableLeagues}
+        selectedLeagues={selectedLeagues}
       />
 
       {/* Main Layout - adjusted for fixed sidebars */}
@@ -232,9 +256,17 @@ export function MainApp() {
           {/* Left spacing for desktop sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0"></div>
 
-          {/* Center content */}
+          {/* Center content with filtered data */}
           <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide pb-16 lg:pb-0">
-            <MainContent onAddToBetSlip={addToBetSlip} isBetSlipOpen={isBetSlipOpen} />
+            <MainContent 
+              onAddToBetSlip={addToBetSlip} 
+              isBetSlipOpen={isBetSlipOpen}
+              selectedLeagues={selectedLeagues}
+              filteredMatches={filteredMatches}
+              filteredFixtures={filteredFixtures}
+              onClearFilters={clearFilters}
+              filterStats={filterStats}
+            />
 
             {/* Wheel - only visible on mobile */}
             <div className="block lg:hidden px-4 pb-4">

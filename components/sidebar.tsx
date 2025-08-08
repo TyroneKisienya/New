@@ -3,16 +3,28 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronDown, ChevronRight, Search, Settings, Menu, X, Trophy, Target, Gamepad2 } from "lucide-react"
+import { ChevronDown, ChevronRight, Search, Settings, Menu, X, Trophy, Target, Gamepad2, Loader2, AlertCircle } from "lucide-react"
+import { useLiveFootballData } from "@/hooks/use-live-football-data"
+import { useFixtureData } from "@/hooks/use-fixture-data"
 
 interface SidebarProps {
   isMobileSidebarOpen?: boolean
   setIsMobileSidebarOpen?: (open: boolean) => void
+  onLeagueSelect?: (selectedLeagues: string[]) => void
 }
 
 interface SearchBarProps {
   value: string
   onChange: (value: string) => void
+}
+
+interface LeagueData {
+  name: string
+  count: number
+  logo: string
+  country?: string
+  isLive: boolean
+  hasFixtures: boolean
 }
 
 const SearchBar = ({ value, onChange }: SearchBarProps) => (
@@ -27,38 +39,166 @@ const SearchBar = ({ value, onChange }: SearchBarProps) => (
   </div>
 )
 
-export function Sidebar({ isMobileSidebarOpen: propMobileSidebarOpen, setIsMobileSidebarOpen: propSetMobileSidebarOpen }: SidebarProps = {}) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["top-leagues"])
+export function Sidebar({ 
+  isMobileSidebarOpen: propMobileSidebarOpen, 
+  setIsMobileSidebarOpen: propSetMobileSidebarOpen,
+  onLeagueSelect 
+}: SidebarProps = {}) {
+  const [expandedSections, setExpandedSections] = useState<string[]>(["dynamic-leagues"])
   const [internalMobileSidebarOpen, setInternalMobileSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeLeague, setActiveLeague] = useState<string | null>(null)
+  const [selectedLeagues, setSelectedLeagues] = useState<Set<string>>(new Set())
   const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // Get data from your existing hooks
+  const { matches, loading: liveLoading, error: liveError } = useLiveFootballData()
+  const { fixtures, loading: fixtureLoading, error: fixtureError } = useFixtureData()
 
   const isMobileSidebarOpen = propMobileSidebarOpen ?? internalMobileSidebarOpen
   const setIsMobileSidebarOpen = propSetMobileSidebarOpen ?? setInternalMobileSidebarOpen
 
-  const topLeagues = useMemo(() => [
-    { name: "UEFA Super Cup", count: 12, icon: "🏆" },
-    { name: "Germany DFL Super Cup", count: 8, icon: "🇩🇪" },
-    { name: "UEFA Champions League", count: 24, icon: "⭐" },
-    { name: "Greece Premier League", count: 16, icon: "🇬🇷" },
-    { name: "Spain La Liga", count: 20, icon: "🇪🇸" },
-    { name: "England Premier League", count: 18, icon: "🏴󐁧󐁢󐁥󐁮󐁧󐁿" },
-    { name: "Futsal Friendlies", count: 6, icon: "⚽" },
-  ], [])
+  // Process API data to extract unique leagues with counts
+  const dynamicLeagues = useMemo(() => {
+    const leagueMap = new Map<string, LeagueData>()
 
-  const sportsCategories = useMemo(() => [
-    { name: "Football", icon: "⚽", count: 156, color: "text-green-400" },
-    { name: "Hockey", icon: "🏒", count: 42, color: "text-blue-400" },
-    { name: "Tennis", icon: "🎾", count: 28, color: "text-yellow-400" },
-    { name: "Basketball", icon: "🏀", count: 34, color: "text-orange-400" },
-    { name: "Baseball", icon: "⚾", count: 18, color: "text-red-400" },
-  ], [])
+    // Process live matches
+    matches.forEach(match => {
+      const leagueKey = match.league.toLowerCase()
+      if (leagueMap.has(leagueKey)) {
+        const existing = leagueMap.get(leagueKey)!
+        leagueMap.set(leagueKey, {
+          ...existing,
+          count: existing.count + 1,
+          isLive: true
+        })
+      } else {
+        leagueMap.set(leagueKey, {
+          name: match.league,
+          count: 1,
+          logo: match.leagueLogo,
+          country: extractCountryFromLeague(match.league),
+          isLive: true,
+          hasFixtures: false
+        })
+      }
+    })
+
+    // Process fixtures
+    fixtures.forEach(match => {
+      const leagueKey = match.league.toLowerCase()
+      if (leagueMap.has(leagueKey)) {
+        const existing = leagueMap.get(leagueKey)!
+        leagueMap.set(leagueKey, {
+          ...existing,
+          count: existing.count + 1,
+          hasFixtures: true
+        })
+      } else {
+        leagueMap.set(leagueKey, {
+          name: match.league,
+          count: 1,
+          logo: match.leagueLogo,
+          country: extractCountryFromLeague(match.league),
+          isLive: false,
+          hasFixtures: true
+        })
+      }
+    })
+
+    return Array.from(leagueMap.values()).sort((a, b) => b.count - a.count)
+  }, [matches, fixtures])
+
+  // Extract country from league name (basic implementation)
+  function extractCountryFromLeague(leagueName: string): string {
+    const countryMappings: { [key: string]: string } = {
+      'premier league': 'England',
+      'la liga': 'Spain',
+      'bundesliga': 'Germany',
+      'serie a': 'Italy',
+      'ligue 1': 'France',
+      'champions league': 'Europe',
+      'europa league': 'Europe',
+      'world cup': 'World',
+    }
+
+    const lowerName = leagueName.toLowerCase()
+    for (const [key, country] of Object.entries(countryMappings)) {
+      if (lowerName.includes(key)) {
+        return country
+      }
+    }
+
+    // Try to extract country from league name patterns
+    if (lowerName.includes('england') || lowerName.includes('english')) return 'England'
+    if (lowerName.includes('spain') || lowerName.includes('spanish')) return 'Spain'
+    if (lowerName.includes('germany') || lowerName.includes('german')) return 'Germany'
+    if (lowerName.includes('italy') || lowerName.includes('italian')) return 'Italy'
+    if (lowerName.includes('france') || lowerName.includes('french')) return 'France'
+    if (lowerName.includes('uefa') || lowerName.includes('champions')) return 'Europe'
+    
+    return 'International'
+  }
+
+  // Group leagues by country
+  const groupedDynamicLeagues = useMemo(() => {
+    return dynamicLeagues.reduce((groups: { [country: string]: LeagueData[] }, league) => {
+      const country = league.country || 'Other'
+      if (!groups[country]) {
+        groups[country] = []
+      }
+      groups[country].push(league)
+      return groups
+    }, {})
+  }, [dynamicLeagues])
+
+  // Filter leagues based on search
+  const filteredGroupedLeagues = useMemo(() => {
+    if (!searchQuery) return groupedDynamicLeagues
+
+    const filtered: { [country: string]: LeagueData[] } = {}
+    Object.entries(groupedDynamicLeagues).forEach(([country, leagues]) => {
+      const filteredLeagues = leagues.filter(league =>
+        league.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      if (filteredLeagues.length > 0) {
+        filtered[country] = filteredLeagues
+      }
+    })
+    return filtered
+  }, [groupedDynamicLeagues, searchQuery])
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) =>
       prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]
     )
+  }
+
+  const toggleLeague = (leagueName: string) => {
+    const newSelected = new Set(selectedLeagues)
+    if (newSelected.has(leagueName)) {
+      newSelected.delete(leagueName)
+    } else {
+      newSelected.add(leagueName)
+    }
+    setSelectedLeagues(newSelected)
+    onLeagueSelect?.(Array.from(newSelected))
+  }
+
+  const toggleCountryLeagues = (country: string, leagues: LeagueData[]) => {
+    const newSelected = new Set(selectedLeagues)
+    const countryLeagueNames = leagues.map(l => l.name)
+    const allSelected = countryLeagueNames.every(name => newSelected.has(name))
+
+    if (allSelected) {
+      // Deselect all leagues in this country
+      countryLeagueNames.forEach(name => newSelected.delete(name))
+    } else {
+      // Select all leagues in this country
+      countryLeagueNames.forEach(name => newSelected.add(name))
+    }
+    
+    setSelectedLeagues(newSelected)
+    onLeagueSelect?.(Array.from(newSelected))
   }
 
   // Close on outside click (mobile)
@@ -89,11 +229,11 @@ export function Sidebar({ isMobileSidebarOpen: propMobileSidebarOpen, setIsMobil
     }
   }, [isMobileSidebarOpen])
 
-  const SidebarContent = useMemo(() => {
-    const filteredLeagues = topLeagues.filter(league =>
-      league.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+  const totalMatches = dynamicLeagues.reduce((sum, league) => sum + league.count, 0)
+  const isLoading = liveLoading || fixtureLoading
+  const hasError = liveError || fixtureError
 
+  const SidebarContent = useMemo(() => {
     return ({ isMobile = false }: { isMobile?: boolean }) => (
       <div className={`h-full overflow-y-auto scrollbar-hide bg-gray-900 w-full ${isMobile ? 'pb-safe' : ''}`}>
         <div className="p-3 sm:p-4 border-b border-gray-700">
@@ -112,28 +252,34 @@ export function Sidebar({ isMobileSidebarOpen: propMobileSidebarOpen, setIsMobil
                 <Settings className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 hover:text-white cursor-pointer transition-colors flex-shrink-0" />
               </div>
             </div>
-            <span className="text-gray-400 text-xs">156 events available</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-xs">{totalMatches} events available</span>
+              {isLoading && <Loader2 className="w-3 h-3 animate-spin text-yellow-400" />}
+              {hasError && <AlertCircle className="w-3 h-3 text-orange-400" />}
+            </div>
           </div>
 
           <SearchBar value={searchQuery} onChange={setSearchQuery} />
         </div>
 
         <div className="p-2 sm:p-4 space-y-3 sm:space-y-4">
+          {/* Dynamic Leagues from API */}
           <div>
             <Button
               variant="ghost"
-              onClick={() => toggleSection("top-leagues")}
+              onClick={() => toggleSection("dynamic-leagues")}
               className="w-full justify-between text-yellow-400 hover:bg-gray-800 p-2 sm:p-3 rounded-lg group transition-all duration-200 h-auto min-h-[40px] sm:min-h-[48px]"
             >
               <div className="flex items-center space-x-2">
                 <Trophy className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium">Top Leagues</span>
+                <span className="text-xs sm:text-sm font-medium">Available Leagues</span>
+                {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full">
-                  {filteredLeagues.length}
+                  {dynamicLeagues.length}
                 </span>
-                {expandedSections.includes("top-leagues") ? (
+                {expandedSections.includes("dynamic-leagues") ? (
                   <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 flex-shrink-0" />
                 ) : (
                   <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 flex-shrink-0" />
@@ -141,85 +287,140 @@ export function Sidebar({ isMobileSidebarOpen: propMobileSidebarOpen, setIsMobil
               </div>
             </Button>
 
-            {expandedSections.includes("top-leagues") && (
-              <div className="ml-1 sm:ml-2 mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                {filteredLeagues.map((league) => (
-                  <Button
-                    key={league.name}
-                    variant="ghost"
-                    onClick={() => setActiveLeague(league.name === activeLeague ? null : league.name)}
-                    className={`w-full justify-between text-left p-2 sm:p-3 rounded-lg transition-all duration-200 h-auto min-h-[44px] sm:min-h-[52px] ${
-                      activeLeague === league.name
-                        ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20"
-                        : "text-gray-300 hover:text-white hover:bg-gray-800"
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                      <span className="text-sm sm:text-base flex-shrink-0">{league.icon}</span>
-                      <div className="flex flex-col items-start min-w-0 flex-1">
-                        <span className="text-xs sm:text-sm font-medium truncate w-full">{league.name}</span>
-                        <span className="text-xs text-gray-500">Live matches</span>
-                      </div>
+            {expandedSections.includes("dynamic-leagues") && (
+              <div className="ml-1 sm:ml-2 mt-2 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                {Object.entries(filteredGroupedLeagues).map(([country, leagues]) => (
+                  <div key={country}>
+                    <div className="flex items-center justify-between mb-2 px-2">
+                      <span className="text-gray-400 text-xs font-medium">{country}</span>
+                      <button
+                        onClick={() => toggleCountryLeagues(country, leagues)}
+                        className="text-xs text-yellow-400 hover:text-yellow-300 transition-colors"
+                      >
+                        {leagues.every(l => selectedLeagues.has(l.name)) ? 'Deselect All' : 'Select All'}
+                      </button>
                     </div>
-                    <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                      <span className="text-xs bg-gray-800 text-gray-300 px-1.5 sm:px-2 py-1 rounded-full">
-                        {league.count}
-                      </span>
-                      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0 ${
-                        league.count > 15 ? "bg-green-400" : league.count > 8 ? "bg-yellow-400" : "bg-gray-500"
-                      }`} />
+                    
+                    <div className="space-y-1">
+                      {leagues.map((league) => (
+                        <div
+                          key={league.name}
+                          className={`flex items-center p-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                            selectedLeagues.has(league.name)
+                              ? "bg-yellow-400/10 border border-yellow-400/20"
+                              : "hover:bg-gray-800"
+                          }`}
+                          onClick={() => toggleLeague(league.name)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedLeagues.has(league.name)}
+                            onChange={() => toggleLeague(league.name)}
+                            className="w-3 h-3 text-yellow-400 border-gray-600 rounded focus:ring-yellow-400 mr-3"
+                          />
+                          
+                          <img
+                            src={league.logo || "/placeholder.svg"}
+                            alt={league.name}
+                            className="w-5 h-5 object-contain mr-3 flex-shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg?height=20&width=20&text=🏆"
+                            }}
+                          />
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className={`text-xs sm:text-sm font-medium truncate ${
+                                selectedLeagues.has(league.name) ? "text-yellow-400" : "text-gray-300"
+                              }`}>
+                                {league.name}
+                              </span>
+                              {league.isLive && (
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className="text-xs text-gray-500">
+                                {league.count} match{league.count !== 1 ? 'es' : ''}
+                              </span>
+                              {league.isLive && (
+                                <span className="text-xs text-red-400 font-medium">LIVE</span>
+                              )}
+                              {league.hasFixtures && !league.isLive && (
+                                <span className="text-xs text-blue-400">Fixtures</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </Button>
+                  </div>
                 ))}
-                {filteredLeagues.length === 0 && searchQuery && (
+                
+                {Object.keys(filteredGroupedLeagues).length === 0 && searchQuery && (
                   <div className="text-center py-4 text-gray-500">
                     <Search className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-xs sm:text-sm">No leagues found</p>
                     <p className="text-xs">Try a different search term</p>
                   </div>
                 )}
+
+                {dynamicLeagues.length === 0 && !isLoading && (
+                  <div className="text-center py-4 text-gray-500">
+                    <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs sm:text-sm">No leagues available</p>
+                    <p className="text-xs">Data will appear when matches are loaded</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
+          {/* Selected Leagues Summary */}
+          {selectedLeagues.size > 0 && (
+            <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3">
+              <div className="text-yellow-400 text-xs font-medium mb-2">
+                Selected: {selectedLeagues.size} league{selectedLeagues.size !== 1 ? 's' : ''}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {Array.from(selectedLeagues).slice(0, 3).map(league => (
+                  <span key={league} className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded">
+                    {league.length > 15 ? `${league.substring(0, 15)}...` : league}
+                  </span>
+                ))}
+                {selectedLeagues.size > 3 && (
+                  <span className="text-xs text-yellow-400">
+                    +{selectedLeagues.size - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Other Sports Categories */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2 mb-3">
               <Gamepad2 className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
               <span className="text-gray-400 text-xs sm:text-sm font-medium">Other Sports</span>
             </div>
 
-            {sportsCategories.map((sport) => (
-              <div key={sport.name}>
-                <Button
-                  variant="ghost"
-                  onClick={() => toggleSection(sport.name.toLowerCase())}
-                  className="w-full justify-between text-gray-300 hover:text-white hover:bg-gray-800 p-2 sm:p-3 rounded-lg transition-all duration-200 group h-auto min-h-[40px] sm:min-h-[48px]"
-                >
-                  <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                    <span className="text-sm sm:text-base flex-shrink-0">{sport.icon}</span>
-                    <div className="flex flex-col items-start min-w-0 flex-1">
-                      <span className="text-xs sm:text-sm font-medium truncate w-full">{sport.name}</span>
-                      <span className="text-xs text-gray-500">Multiple leagues</span>
-                    </div>
+            {["Hockey", "Tennis", "Basketball", "Baseball"].map((sport) => (
+              <Button
+                key={sport}
+                variant="ghost"
+                className="w-full justify-between text-gray-300 hover:text-white hover:bg-gray-800 p-2 sm:p-3 rounded-lg transition-all duration-200 group h-auto min-h-[40px] sm:min-h-[48px]"
+              >
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                  <span className="text-sm sm:text-base flex-shrink-0">
+                    {sport === "Hockey" ? "🏒" : sport === "Tennis" ? "🎾" : sport === "Basketball" ? "🏀" : "⚾"}
+                  </span>
+                  <div className="flex flex-col items-start min-w-0 flex-1">
+                    <span className="text-xs sm:text-sm font-medium truncate w-full">{sport}</span>
+                    <span className="text-xs text-gray-500">Coming soon</span>
                   </div>
-                  <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                    <span className={`text-xs font-medium ${sport.color}`}>
-                      {sport.count}
-                    </span>
-                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform duration-200" />
-                  </div>
-                </Button>
-
-                {expandedSections.includes(sport.name.toLowerCase()) && (
-                  <div className="ml-4 sm:ml-6 mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                    <div className="text-center py-4 sm:py-6 text-gray-500">
-                      <Gamepad2 className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
-                      <p className="text-xs sm:text-sm">Coming Soon</p>
-                      <p className="text-xs">{sport.name} leagues will be available soon</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform duration-200" />
+              </Button>
             ))}
           </div>
         </div>
@@ -235,7 +436,7 @@ export function Sidebar({ isMobileSidebarOpen: propMobileSidebarOpen, setIsMobil
         </div>
       </div>
     )
-  }, [searchQuery, expandedSections, activeLeague])
+  }, [searchQuery, expandedSections, selectedLeagues, dynamicLeagues, filteredGroupedLeagues, totalMatches, isLoading, hasError])
 
   return (
     <>
@@ -286,4 +487,3 @@ export function Sidebar({ isMobileSidebarOpen: propMobileSidebarOpen, setIsMobil
     </>
   )
 }
- 
