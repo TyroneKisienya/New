@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { supabase } from '@/lib/supabaseClient'
-import type { Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import TopHeader from "@/components/top-header"
 import { MainHeader } from "@/components/main-header"
 import { Sidebar } from "@/components/sidebar"
@@ -12,6 +12,9 @@ import { BetSlip } from "@/components/bet-slip"
 import { BottomNavigation } from "./bottom-navigation"
 import { Footer } from "@/components/footer"
 import ResetPasswordPage from "@/components/reset-password-page"
+import LoginPage from "@/components/auth/LoginPage"
+import RegisterPage from "@/components/auth/RegisterPage"
+import ForgotPasswordPage from "@/components/auth/ForgotPasswordPage"
 
 // Define the bet type
 interface Bet {
@@ -28,18 +31,82 @@ interface Bet {
   possibleProfit?: number
 }
 
+// Auth Modal Component
+interface AuthModalProps {
+  isOpen: boolean
+  onClose: () => void
+  currentView: 'login' | 'register' | 'forgot-password'
+  onViewChange: (view: 'login' | 'register' | 'forgot-password') => void
+  onLoginSuccess: (session: Session) => void
+}
+
+function AuthModal({ isOpen, onClose, currentView, onViewChange, onLoginSuccess }: AuthModalProps) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-md mx-4 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold z-10"
+        >
+          ×
+        </button>
+        
+        <div className="p-6">
+          {currentView === 'login' && (
+            <LoginPage
+              onClose={onClose}
+              onSwitchToRegister={() => onViewChange('register')}
+              onSwitchToForgotPassword={() => onViewChange('forgot-password')}
+              onLoginSuccess={onLoginSuccess}
+            />
+          )}
+          
+          {currentView === 'register' && (
+            <RegisterPage
+              onClose={onClose}
+              onSwitchToLogin={() => onViewChange('login')}
+            />
+          )}
+          
+          {currentView === 'forgot-password' && (
+            <ForgotPasswordPage
+              onClose={onClose}
+              onSwitchToLogin={() => onViewChange('login')}
+              onSwitchToRegister={() => onViewChange('register')}
+            />
+          )}
+        </div>
+      </div>
+      </div>
+    )
+  }
+
 export function MainApp() {
   const [selectedBets, setSelectedBets] = useState<Bet[]>([])
   const [isBetSlipOpen, setIsBetSlipOpen] = useState(false)
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  
+  // Auth modal state
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [authView, setAuthView] = useState<'login' | 'register' | 'forgot-password'>('login')
 
   useEffect(() => {
+    // Check for existing session on component mount
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setSession(session)
+      setUser(session?.user ?? null)
+    }
+
+    getInitialSession()
+
     // Check for password recovery session on app load
     const checkForPasswordRecovery = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
       // Check URL parameters for password recovery
       const urlParams = new URLSearchParams(window.location.search)
       const accessToken = urlParams.get('access_token')
@@ -55,6 +122,7 @@ export function MainApp() {
         
         if (!error && data.session) {
           setSession(data.session)
+          setUser(data.session.user)
           setShowResetPassword(true)
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname)
@@ -67,9 +135,16 @@ export function MainApp() {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        
         if (event === 'PASSWORD_RECOVERY') {
-          setSession(session)
           setShowResetPassword(true)
+        }
+        
+        // Close auth modal on successful login
+        if (event === 'SIGNED_IN' && session) {
+          setIsAuthModalOpen(false)
         }
       }
     )
@@ -88,6 +163,48 @@ export function MainApp() {
   const handleResetPasswordComplete = () => {
     setShowResetPassword(false)
     setSession(null)
+    setUser(null)
+  }
+
+  const handleOpenLoginModal = () => {
+    setAuthView('login')
+    setIsAuthModalOpen(true)
+  }
+
+  const handleLoginSuccess = (session: Session) => {
+    setSession(session)
+    setUser(session.user)
+    setIsAuthModalOpen(false)
+  }
+
+  const handlePlaceBet = async (betData: any) => {
+    try {
+      // Here you would implement your bet placement logic
+      console.log('Placing bet for user:', user?.id, betData)
+      
+      // Example: Save bet to database
+      // const { data, error } = await supabase
+      //   .from('bets')
+      //   .insert({
+      //     user_id: user?.id,
+      //     bet_data: betData,
+      //     stake: betData.stake,
+      //     total_odds: betData.totalOdds,
+      //     possible_profit: betData.possibleProfit,
+      //     status: 'pending'
+      //   })
+      
+      // if (error) throw error
+      
+      // For now, just show success message and clear bets
+      alert('Bet placed successfully!')
+      setSelectedBets([]) // Clear bets after successful placement
+      setIsBetSlipOpen(false) // Close bet slip
+      
+    } catch (error) {
+      console.error('Error placing bet:', error)
+      alert('Failed to place bet. Please try again.')
+    }
   }
 
   // Show reset password page if needed
@@ -99,7 +216,7 @@ export function MainApp() {
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Fixed Headers */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-lg">
-        <TopHeader />
+        <TopHeader session={session} user={user} />
         <MainHeader betCount={selectedBets.length} onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} />
       </div>
 
@@ -130,12 +247,15 @@ export function MainApp() {
           {/* Right spacing for desktop wheel sidebar */}
           <div className="hidden lg:block w-80 flex-shrink-0"></div>
 
-          {/* Bet Slip */}
+          {/* Bet Slip with Authentication */}
           <BetSlip
             bets={selectedBets}
             onRemoveBet={removeFromBetSlip}
             isOpen={isBetSlipOpen}
             onToggle={() => setIsBetSlipOpen(!isBetSlipOpen)}
+            isAuthenticated={!!user}
+            onLogin={handleOpenLoginModal}
+            onPlaceBet={handlePlaceBet}
           />
         </div>
       </div>
@@ -157,6 +277,15 @@ export function MainApp() {
           onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
       </div>
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentView={authView}
+        onViewChange={setAuthView}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   )
 }

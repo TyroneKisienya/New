@@ -50,13 +50,21 @@ export function BetSlip({
   }
 
   const handlePlaceBet = async () => {
+    console.log('handlePlaceBet called', { isAuthenticated, onLogin, onPlaceBet })
+    
+    // If not authenticated, trigger login modal
     if (!isAuthenticated) {
-      //trigger login modal
-      const loginButton = document.querySelector('[data-trigger-login')
-      if (loginButton) (loginButton as HTMLElement).click()
+      console.log('User not authenticated, calling onLogin')
+      if (onLogin) {
+        onLogin()
+      } else {
+        console.error('onLogin function not provided!')
+      }
       return
     }
 
+    // If authenticated, proceed with placing bet
+    console.log('User authenticated, proceeding with bet placement')
     setIsPlacingBet(true)
 
     const totalOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
@@ -70,7 +78,11 @@ export function BetSlip({
     }
 
     try {
-      await onPlaceBet?.(betData)
+      if (onPlaceBet) {
+        await onPlaceBet(betData)
+      } else {
+        console.error('onPlaceBet function not provided!')
+      }
     } catch (error) {
       console.error('Error placing bet:', error)
     } finally {
@@ -255,7 +267,7 @@ export function BetSlip({
                     ) : !isAuthenticated ? (
                       <div className="flex items-center space-x-2">
                         <LogIn className="w-4 h-4" />
-                        <span>Place Bet</span>
+                        <span>Login to Place Bet</span>
                       </div>
                     ) : (
                       <div className="flex items-center space-x-2">

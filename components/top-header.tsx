@@ -1,33 +1,26 @@
 import React, { useEffect, useRef, useState } from "react"
 import { Globe, Clock, X, Menu } from "lucide-react"
 import { supabase } from '@/lib/supabaseClient'
+import type { Session, User } from '@supabase/supabase-js'
 import LoginPage from './auth/LoginPage'
 import RegisterPage from './auth/RegisterPage'
 import ForgotPasswordPage from './auth/ForgotPasswordPage'
 
-export default function TopHeader() {
+interface TopHeaderProps {
+  session?: Session | null
+  user?: User | null
+}
+
+export default function TopHeader({ session: propSession, user: propUser }: TopHeaderProps) {
   const [activeForm, setActiveForm] = useState<"login" | "register" | "forgot-password" | null>(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [session, setSession] = useState<any>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   
   const modalRef = useRef<HTMLDivElement>(null)
 
-  // Get initial session on mount - NO LISTENER
-  useEffect(() => {
-    const getInitialSession = async () => {
-      try {
-        const { data } = await supabase.auth.getSession()
-        if (data?.session) {
-          setSession(data.session)
-        }
-      } catch (error) {
-        console.error('Error getting session:', error)
-      }
-    }
-
-    getInitialSession()
-  }, [])
+  // Use props if provided, otherwise manage local state (for backwards compatibility)
+  const session = propSession !== undefined ? propSession : null
+  const user = propUser !== undefined ? propUser : null
 
   // Clock update
   useEffect(() => {
@@ -54,14 +47,16 @@ export default function TopHeader() {
   }
 
   const handleLoginSuccess = (userSession: any) => {
-    setSession(userSession)
+    // Close the modal after successful login
+    setActiveForm(null)
+    // The session state will be updated by the parent component
   }
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut()
-      setSession(null)
       alert('Logged out successfully.')
+      // The session state will be updated by the parent component's auth listener
     } catch (error) {
       console.error('Logout error:', error)
     }
