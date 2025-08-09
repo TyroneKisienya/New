@@ -16,7 +16,7 @@ import LoginPage from "@/components/auth/LoginPage"
 import RegisterPage from "@/components/auth/RegisterPage"
 import ForgotPasswordPage from "@/components/auth/ForgotPasswordPage"
 
-// Import the new hooks
+// Import the updated hooks
 import { useLeagueFilter } from "@/hooks/use-league-filter"
 import { useLiveFootballData } from "@/hooks/use-live-football-data"
 import { useFixtureData } from "@/hooks/use-fixture-data"
@@ -104,9 +104,9 @@ export function MainApp() {
   const { matches } = useLiveFootballData()
   const { fixtures } = useFixtureData()
 
-  // Use the league filter hook
+  // Use the updated league filter hook for single selection
   const {
-    selectedLeagues,
+    selectedLeague,
     availableLeagues,
     filteredMatches,
     filteredFixtures,
@@ -241,13 +241,12 @@ export function MainApp() {
         <MainHeader betCount={selectedBets.length} onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} />
       </div>
 
-      {/* Sidebar with league filtering and available leagues */}
+      {/* Sidebar with single league selection */}
       <Sidebar 
         isMobileSidebarOpen={isMobileSidebarOpen}
         setIsMobileSidebarOpen={setIsMobileSidebarOpen}
         onLeagueSelect={handleLeagueSelection}
-        availableLeagues={availableLeagues}
-        selectedLeagues={selectedLeagues}
+        selectedLeague={selectedLeague}
       />
 
       {/* Main Layout - adjusted for fixed sidebars */}
@@ -261,7 +260,7 @@ export function MainApp() {
             <MainContent 
               onAddToBetSlip={addToBetSlip} 
               isBetSlipOpen={isBetSlipOpen}
-              selectedLeagues={selectedLeagues}
+              selectedLeague={selectedLeague}
               filteredMatches={filteredMatches}
               filteredFixtures={filteredFixtures}
               onClearFilters={clearFilters}

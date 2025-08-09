@@ -1,4 +1,4 @@
-// Create this as hooks/use-league-filter.ts
+// hooks/use-league-filter.ts
 
 import { useState, useCallback, useMemo } from 'react'
 
@@ -8,57 +8,61 @@ interface UseLeagueFilterProps {
 }
 
 export function useLeagueFilter({ matches = [], fixtures = [] }: UseLeagueFilterProps = {}) {
-  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([])
+  const [selectedLeague, setSelectedLeague] = useState<string | null>(null)
 
   // Get all available leagues from both matches and fixtures
   const availableLeagues = useMemo(() => {
     const leagueSet = new Set<string>()
     
-    matches.forEach(match => leagueSet.add(match.league))
-    fixtures.forEach(fixture => leagueSet.add(fixture.league))
+    matches.forEach(match => {
+      if (match.league) leagueSet.add(match.league)
+    })
+    fixtures.forEach(fixture => {
+      if (fixture.league) leagueSet.add(fixture.league)
+    })
     
     return Array.from(leagueSet).sort()
   }, [matches, fixtures])
 
-  // Filter matches based on selected leagues
+  // Filter matches based on selected league
   const filteredMatches = useMemo(() => {
-    if (selectedLeagues.length === 0) return matches
-    return matches.filter(match => selectedLeagues.includes(match.league))
-  }, [matches, selectedLeagues])
+    if (!selectedLeague) return matches
+    return matches.filter(match => match.league === selectedLeague)
+  }, [matches, selectedLeague])
 
-  // Filter fixtures based on selected leagues
+  // Filter fixtures based on selected league
   const filteredFixtures = useMemo(() => {
-    if (selectedLeagues.length === 0) return fixtures
-    return fixtures.filter(fixture => selectedLeagues.includes(fixture.league))
-  }, [fixtures, selectedLeagues])
+    if (!selectedLeague) return fixtures
+    return fixtures.filter(fixture => fixture.league === selectedLeague)
+  }, [fixtures, selectedLeague])
 
-  // Handler to update selected leagues
-  const handleLeagueSelection = useCallback((leagues: string[]) => {
-    setSelectedLeagues(leagues)
+  // Handler to update selected league
+  const handleLeagueSelection = useCallback((league: string | null) => {
+    setSelectedLeague(league)
   }, [])
 
   // Clear all filters
   const clearFilters = useCallback(() => {
-    setSelectedLeagues([])
+    setSelectedLeague(null)
   }, [])
 
   // Check if any filters are active
-  const hasActiveFilters = selectedLeagues.length > 0
+  const hasActiveFilters = selectedLeague !== null
 
   // Get filter statistics
   const filterStats = useMemo(() => {
     return {
       totalLeagues: availableLeagues.length,
-      selectedCount: selectedLeagues.length,
+      selectedLeague: selectedLeague,
       totalMatches: matches.length,
       filteredMatches: filteredMatches.length,
       totalFixtures: fixtures.length,
       filteredFixtures: filteredFixtures.length,
     }
-  }, [availableLeagues, selectedLeagues, matches, fixtures, filteredMatches, filteredFixtures])
+  }, [availableLeagues, selectedLeague, matches, fixtures, filteredMatches, filteredFixtures])
 
   return {
-    selectedLeagues,
+    selectedLeague,
     availableLeagues,
     filteredMatches,
     filteredFixtures,

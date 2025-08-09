@@ -33,11 +33,12 @@ interface FilterStats {
   filteredMatches: number
   totalFixtures: number
   filteredFixtures: number
+  selectedLeague: string | null
 }
 
 interface DetailedMatchTablesProps {
   onAddToBetSlip: (bet: any) => void
-  selectedLeagues?: string[]
+  selectedLeague?: string | null
   filteredMatches?: Match[]
   filteredFixtures?: Match[]
   onClearFilters?: () => void
@@ -46,7 +47,7 @@ interface DetailedMatchTablesProps {
 
 export function DetailedMatchTables({ 
   onAddToBetSlip, 
-  selectedLeagues = [],
+  selectedLeague = null,
   filteredMatches = [],
   filteredFixtures = [],
   onClearFilters,
@@ -70,8 +71,8 @@ export function DetailedMatchTables({
   } = useFixtureData()
 
   // Use filtered data if provided, otherwise use original data
-  const matches = filteredMatches.length > 0 || selectedLeagues.length > 0 ? filteredMatches : originalMatches
-  const fixtures = filteredFixtures.length > 0 || selectedLeagues.length > 0 ? filteredFixtures : originalFixtures
+  const matches = filteredMatches.length > 0 || selectedLeague ? filteredMatches : originalMatches
+  const fixtures = filteredFixtures.length > 0 || selectedLeague ? filteredFixtures : originalFixtures
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
@@ -79,25 +80,15 @@ export function DetailedMatchTables({
 
   // Add a filter status indicator
   const renderFilterStatus = () => {
-    if (selectedLeagues.length === 0) return null
+    if (!selectedLeague) return null
 
     return (
       <div className="mb-4 bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-yellow-400 text-sm font-medium">
-              Filtered by {selectedLeagues.length} league{selectedLeagues.length !== 1 ? 's' : ''}
+              Viewing: {selectedLeague}
             </span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {selectedLeagues.slice(0, 3).map(league => (
-                <span key={league} className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded">
-                  {league}
-                </span>
-              ))}
-              {selectedLeagues.length > 3 && (
-                <span className="text-xs text-yellow-400">+{selectedLeagues.length - 3} more</span>
-              )}
-            </div>
             {filterStats && (
               <div className="text-xs text-yellow-300 mt-1">
                 {filterStats.filteredMatches}/{filterStats.totalMatches} matches • {filterStats.filteredFixtures}/{filterStats.totalFixtures} fixtures
@@ -111,7 +102,7 @@ export function DetailedMatchTables({
               onClick={onClearFilters}
               className="text-yellow-400 hover:text-yellow-300"
             >
-              Clear
+              View All
             </Button>
           )}
         </div>
@@ -198,7 +189,9 @@ export function DetailedMatchTables({
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-white font-medium">⚽ Live Football</span>
+              <span className="text-white font-medium">
+                ⚽ {selectedLeague ? `${selectedLeague} - Live` : 'Live Football'}
+              </span>
               {isUsingMockData && (
                 <div className="flex items-center space-x-1 text-yellow-400">
                   <AlertCircle className="w-4 h-4" />
@@ -250,7 +243,9 @@ export function DetailedMatchTables({
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-white font-medium">📅 Fixtures</span>
+              <span className="text-white font-medium">
+                📅 {selectedLeague ? `${selectedLeague} - Fixtures` : 'Fixtures'}
+              </span>
               {fixtureError && (
                 <div className="flex items-center space-x-1 text-orange-400">
                   <AlertCircle className="w-4 h-4" />
@@ -333,18 +328,18 @@ export function DetailedMatchTables({
                 renderLeague(`fixture-${leagueKey}`, leagueData)
               )
             ) : !fixtureLoading ? (
-              selectedLeagues.length > 0 ? (
+              selectedLeague ? (
                 <div className="bg-white p-8 text-center">
                   <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-                  <p className="text-yellow-600 mb-2">No fixtures for selected leagues</p>
-                  <p className="text-gray-500 text-sm mb-4">Try selecting different leagues or clear your filters</p>
+                  <p className="text-yellow-600 mb-2">No fixtures for {selectedLeague}</p>
+                  <p className="text-gray-500 text-sm mb-4">Try viewing all leagues or select a different date</p>
                   {onClearFilters && (
                     <Button
                       variant="outline"
                       onClick={onClearFilters}
                       className="text-yellow-600 border-yellow-400 hover:bg-yellow-50 mr-2"
                     >
-                      Clear Filters
+                      View All Leagues
                     </Button>
                   )}
                   <Button
@@ -601,13 +596,13 @@ export function DetailedMatchTables({
       {/* Live Football Section */}
       {Object.keys(groupedMatches).length > 0 ? (
         renderFootballSection()
-      ) : selectedLeagues.length > 0 && !loading ? (
+      ) : selectedLeague && !loading ? (
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-8 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-            <p className="text-yellow-400 mb-2">No live matches for selected leagues</p>
+            <p className="text-yellow-400 mb-2">No live matches for {selectedLeague}</p>
             <p className="text-gray-500 text-sm mb-4">
-              Try selecting different leagues or clear your filters
+              Try viewing all leagues or check back later for live matches
             </p>
             {onClearFilters && (
               <Button
@@ -615,7 +610,7 @@ export function DetailedMatchTables({
                 onClick={onClearFilters}
                 className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10 mr-2"
               >
-                Clear Filters
+                View All Leagues
               </Button>
             )}
             <Button

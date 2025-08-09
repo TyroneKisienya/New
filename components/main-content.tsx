@@ -30,12 +30,13 @@ interface FilterStats {
   filteredMatches: number
   totalFixtures: number
   filteredFixtures: number
+  selectedLeague: string | null
 }
 
 interface MainContentProps {
   onAddToBetSlip: (bet: any) => void
   isBetSlipOpen: boolean
-  selectedLeagues?: string[]
+  selectedLeague?: string | null
   filteredMatches?: Match[]
   filteredFixtures?: Match[]
   onClearFilters?: () => void
@@ -45,7 +46,7 @@ interface MainContentProps {
 export function MainContent({ 
   onAddToBetSlip, 
   isBetSlipOpen, 
-  selectedLeagues = [],
+  selectedLeague = null,
   filteredMatches = [],
   filteredFixtures = [],
   onClearFilters,
@@ -58,10 +59,10 @@ export function MainContent({
         <PopularEvents onAddToBetSlip={onAddToBetSlip} />
         <TopLeagues />
         
-        {/* Live Matches Section with filtering */}
+        {/* Live Matches Section with single league filtering */}
         <DetailedMatchTables 
           onAddToBetSlip={onAddToBetSlip} 
-          selectedLeagues={selectedLeagues}
+          selectedLeague={selectedLeague}
           filteredMatches={filteredMatches}
           filteredFixtures={filteredFixtures}
           onClearFilters={onClearFilters}

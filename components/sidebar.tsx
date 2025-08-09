@@ -10,7 +10,8 @@ import { useFixtureData } from "@/hooks/use-fixture-data"
 interface SidebarProps {
   isMobileSidebarOpen?: boolean
   setIsMobileSidebarOpen?: (open: boolean) => void
-  onLeagueSelect?: (selectedLeagues: string[]) => void
+  onLeagueSelect?: (selectedLeague: string | null) => void
+  selectedLeague?: string | null
 }
 
 interface SearchBarProps {
@@ -42,12 +43,12 @@ const SearchBar = ({ value, onChange }: SearchBarProps) => (
 export function Sidebar({ 
   isMobileSidebarOpen: propMobileSidebarOpen, 
   setIsMobileSidebarOpen: propSetMobileSidebarOpen,
-  onLeagueSelect 
+  onLeagueSelect,
+  selectedLeague
 }: SidebarProps = {}) {
   const [expandedSections, setExpandedSections] = useState<string[]>(["dynamic-leagues"])
   const [internalMobileSidebarOpen, setInternalMobileSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedLeagues, setSelectedLeagues] = useState<Set<string>>(new Set())
   const sidebarRef = useRef<HTMLDivElement>(null)
 
   // Get data from your existing hooks
@@ -62,7 +63,7 @@ export function Sidebar({
     const leagueMap = new Map<string, LeagueData>()
 
     // Process live matches
-    matches.forEach(match => {
+    matches.forEach((match: { league: string; leagueLogo: any }) => {
       const leagueKey = match.league.toLowerCase()
       if (leagueMap.has(leagueKey)) {
         const existing = leagueMap.get(leagueKey)!
@@ -173,32 +174,31 @@ export function Sidebar({
     )
   }
 
-  const toggleLeague = (leagueName: string) => {
-    const newSelected = new Set(selectedLeagues)
-    if (newSelected.has(leagueName)) {
-      newSelected.delete(leagueName)
-    } else {
-      newSelected.add(leagueName)
+  // Single league selection handler
+  const handleLeagueClick = (leagueName: string) => {
+    // If clicking the same league, deselect it
+    const newSelection = selectedLeague === leagueName ? null : leagueName
+    
+    onLeagueSelect?.(newSelection)
+    
+    // Close mobile sidebar automatically after selection
+    if (isMobileSidebarOpen) {
+      setIsMobileSidebarOpen(false)
     }
-    setSelectedLeagues(newSelected)
-    onLeagueSelect?.(Array.from(newSelected))
+
+    // Clear search after selection for better UX
+    setSearchQuery("")
   }
 
-  const toggleCountryLeagues = (country: string, leagues: LeagueData[]) => {
-    const newSelected = new Set(selectedLeagues)
-    const countryLeagueNames = leagues.map(l => l.name)
-    const allSelected = countryLeagueNames.every(name => newSelected.has(name))
-
-    if (allSelected) {
-      // Deselect all leagues in this country
-      countryLeagueNames.forEach(name => newSelected.delete(name))
-    } else {
-      // Select all leagues in this country
-      countryLeagueNames.forEach(name => newSelected.add(name))
+  // View all leagues handler
+  const handleViewAll = () => {
+    onLeagueSelect?.(null)
+    
+    if (isMobileSidebarOpen) {
+      setIsMobileSidebarOpen(false)
     }
     
-    setSelectedLeagues(newSelected)
-    onLeagueSelect?.(Array.from(newSelected))
+    setSearchQuery("")
   }
 
   // Close on outside click (mobile)
@@ -263,6 +263,30 @@ export function Sidebar({
         </div>
 
         <div className="p-2 sm:p-4 space-y-3 sm:space-y-4">
+          {/* View All Option */}
+          <div>
+            <Button
+              variant="ghost"
+              onClick={handleViewAll}
+              className={`w-full justify-between p-2 sm:p-3 rounded-lg group transition-all duration-200 h-auto min-h-[40px] sm:min-h-[48px] ${
+                selectedLeague === null 
+                  ? "bg-yellow-400/10 border border-yellow-400/20 text-yellow-400" 
+                  : "text-white hover:bg-gray-800"
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Trophy className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">View All Leagues</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs bg-gray-800 px-2 py-1 rounded-full">
+                  {totalMatches}
+                </span>
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 flex-shrink-0" />
+              </div>
+            </Button>
+          </div>
+
           {/* Dynamic Leagues from API */}
           <div>
             <Button
@@ -293,12 +317,6 @@ export function Sidebar({
                   <div key={country}>
                     <div className="flex items-center justify-between mb-2 px-2">
                       <span className="text-gray-400 text-xs font-medium">{country}</span>
-                      <button
-                        onClick={() => toggleCountryLeagues(country, leagues)}
-                        className="text-xs text-yellow-400 hover:text-yellow-300 transition-colors"
-                      >
-                        {leagues.every(l => selectedLeagues.has(l.name)) ? 'Deselect All' : 'Select All'}
-                      </button>
                     </div>
                     
                     <div className="space-y-1">
@@ -306,19 +324,12 @@ export function Sidebar({
                         <div
                           key={league.name}
                           className={`flex items-center p-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                            selectedLeagues.has(league.name)
+                            selectedLeague === league.name
                               ? "bg-yellow-400/10 border border-yellow-400/20"
                               : "hover:bg-gray-800"
                           }`}
-                          onClick={() => toggleLeague(league.name)}
+                          onClick={() => handleLeagueClick(league.name)}
                         >
-                          <input
-                            type="checkbox"
-                            checked={selectedLeagues.has(league.name)}
-                            onChange={() => toggleLeague(league.name)}
-                            className="w-3 h-3 text-yellow-400 border-gray-600 rounded focus:ring-yellow-400 mr-3"
-                          />
-                          
                           <img
                             src={league.logo || "/placeholder.svg"}
                             alt={league.name}
@@ -331,7 +342,7 @@ export function Sidebar({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
                               <span className={`text-xs sm:text-sm font-medium truncate ${
-                                selectedLeagues.has(league.name) ? "text-yellow-400" : "text-gray-300"
+                                selectedLeague === league.name ? "text-yellow-400" : "text-gray-300"
                               }`}>
                                 {league.name}
                               </span>
@@ -351,6 +362,11 @@ export function Sidebar({
                               )}
                             </div>
                           </div>
+
+                          {/* Selection indicator */}
+                          {selectedLeague === league.name && (
+                            <div className="ml-2 w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0" />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -376,24 +392,19 @@ export function Sidebar({
             )}
           </div>
 
-          {/* Selected Leagues Summary */}
-          {selectedLeagues.size > 0 && (
+          {/* Selected League Summary */}
+          {selectedLeague && (
             <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3">
               <div className="text-yellow-400 text-xs font-medium mb-2">
-                Selected: {selectedLeagues.size} league{selectedLeagues.size !== 1 ? 's' : ''}
+                Currently viewing: {selectedLeague}
               </div>
-              <div className="flex flex-wrap gap-1">
-                {Array.from(selectedLeagues).slice(0, 3).map(league => (
-                  <span key={league} className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded">
-                    {league.length > 15 ? `${league.substring(0, 15)}...` : league}
-                  </span>
-                ))}
-                {selectedLeagues.size > 3 && (
-                  <span className="text-xs text-yellow-400">
-                    +{selectedLeagues.size - 3} more
-                  </span>
-                )}
-              </div>
+              <Button
+                variant="ghost"
+                onClick={handleViewAll}
+                className="text-xs text-yellow-300 hover:text-yellow-400 p-0 h-auto font-normal"
+              >
+                View all leagues →
+              </Button>
             </div>
           )}
 
@@ -436,7 +447,7 @@ export function Sidebar({
         </div>
       </div>
     )
-  }, [searchQuery, expandedSections, selectedLeagues, dynamicLeagues, filteredGroupedLeagues, totalMatches, isLoading, hasError])
+  }, [searchQuery, expandedSections, selectedLeague, dynamicLeagues, filteredGroupedLeagues, totalMatches, isLoading, hasError, handleLeagueClick, handleViewAll])
 
   return (
     <>
