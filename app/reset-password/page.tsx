@@ -14,17 +14,30 @@ export default function ResetPasswordRoute() {
   useEffect(() => {
     const handlePasswordReset = async () => {
       try {
+        // Parse URL parameters from both query string and hash
         const urlParams = new URLSearchParams(window.location.search)
-        const accessToken = urlParams.get('access_token')
-        const refreshToken = urlParams.get('refresh_token')
-        const type = urlParams.get('type')
-        const urlError = urlParams.get('error')
         
-        console.log('Reset route - URL params:', { 
+        // Check if we have hash-based tokens (from {{ .TokenHash }})
+        const hashString = window.location.hash.substring(1) // Remove the #
+        const hashParams = new URLSearchParams(hashString)
+        
+        // Get tokens from either location
+        const accessToken = urlParams.get('access_token') || hashParams.get('access_token')
+        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token')
+        const type = urlParams.get('type') || hashParams.get('type')
+        const urlError = urlParams.get('error') || hashParams.get('error')
+        
+        console.log('Reset route - Full URL:', window.location.href)
+        console.log('Reset route - Query params:', Object.fromEntries(urlParams))
+        console.log('Reset route - Hash string:', hashString)
+        console.log('Reset route - Hash params:', Object.fromEntries(hashParams))
+        console.log('Reset route - Extracted values:', { 
           type, 
           hasAccessToken: !!accessToken, 
           hasRefreshToken: !!refreshToken,
-          error: urlError
+          error: urlError,
+          accessTokenLength: accessToken?.length,
+          refreshTokenLength: refreshToken?.length
         })
 
         // Handle URL errors
@@ -35,13 +48,19 @@ export default function ResetPasswordRoute() {
         }
 
         // Check if this is a valid password recovery
-        if (type === 'recovery' && accessToken && refreshToken) {
-          console.log('Setting recovery session...')
+        if ((type === 'recovery' || type === 'signup') && accessToken) {
+          console.log('Valid recovery tokens found, setting session...')
           
           // Set the session for password recovery
           const { data, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
-            refresh_token: refreshToken
+            refresh_token: refreshToken || '' // refresh_token might be optional
+          })
+          
+          console.log('Session set result:', { 
+            hasSession: !!data.session, 
+            hasUser: !!data.user, 
+            error: sessionError 
           })
           
           if (sessionError) {
@@ -56,7 +75,8 @@ export default function ResetPasswordRoute() {
             setError('No valid session created')
           }
         } else {
-          setError('Invalid password reset link')
+          console.log('Invalid reset parameters:', { type, hasAccessToken: !!accessToken })
+          setError('Invalid password reset link. Missing required parameters.')
         }
         
       } catch (err) {
