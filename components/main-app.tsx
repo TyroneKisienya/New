@@ -84,9 +84,9 @@ function AuthModal({ isOpen, onClose, currentView, onViewChange, onLoginSuccess 
           )}
         </div>
       </div>
-      </div>
-    )
-  }
+    </div>
+  )
+}
 
 export function MainApp() {
   const [selectedBets, setSelectedBets] = useState<Bet[]>([])
@@ -117,55 +117,60 @@ export function MainApp() {
   } = useLeagueFilter({ matches, fixtures })
 
   useEffect(() => {
-    // Check for existing session on component mount
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-    }
-
-    getInitialSession()
-
-    // Check for password recovery session on app load
-    const checkForPasswordRecovery = async () => {
-      // Check URL parameters for password recovery
-      const urlParams = new URLSearchParams(window.location.search)
-      const accessToken = urlParams.get('access_token')
-      const refreshToken = urlParams.get('refresh_token')
-      const type = urlParams.get('type')
-      
-      if (type === 'recovery' && accessToken && refreshToken) {
-        // Set the session for password recovery
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        })
+    const initializeAuth = async () => {
+      try {
+        // Check for password recovery first
+        const urlParams = new URLSearchParams(window.location.search)
+        const accessToken = urlParams.get('access_token')
+        const refreshToken = urlParams.get('refresh_token')
+        const type = urlParams.get('type')
         
-        if (!error && data.session) {
-          setSession(data.session)
-          setUser(data.session.user)
+        console.log('URL check:', { type, hasTokens: !!(accessToken && refreshToken) })
+        
+        if (type === 'recovery' && accessToken && refreshToken) {
+          console.log('Password recovery detected, showing reset page')
           setShowResetPassword(true)
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname)
+          return // Don't proceed with normal session check
         }
+
+        // Normal session check
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Error getting session:', error)
+          return
+        }
+
+        console.log('Initial session check:', !!session)
+        setSession(session)
+        setUser(session?.user ?? null)
+
+      } catch (error) {
+        console.error('Auth initialization error:', error)
       }
     }
 
-    checkForPasswordRecovery()
+    initializeAuth()
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('Auth state change:', event, !!session)
+        
         setSession(session)
         setUser(session?.user ?? null)
         
         if (event === 'PASSWORD_RECOVERY') {
+          console.log('Password recovery event detected')
           setShowResetPassword(true)
         }
         
-        // Close auth modal on successful login
         if (event === 'SIGNED_IN' && session) {
           setIsAuthModalOpen(false)
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setShowResetPassword(false)
         }
       }
     )
@@ -182,9 +187,14 @@ export function MainApp() {
   }
 
   const handleResetPasswordComplete = () => {
+    console.log('Reset password completed')
     setShowResetPassword(false)
-    setSession(null)
-    setUser(null)
+    
+    // Clean up URL parameters
+    window.history.replaceState({}, document.title, window.location.pathname)
+    
+    // Sign out user so they can log in with new password
+    supabase.auth.signOut()
   }
 
   const handleOpenLoginModal = () => {
@@ -229,7 +239,7 @@ export function MainApp() {
   }
 
   // Show reset password page if needed
-  if (showResetPassword && session) {
+  if (showResetPassword) {
     return <ResetPasswordPage onComplete={handleResetPasswordComplete} />
   }
 

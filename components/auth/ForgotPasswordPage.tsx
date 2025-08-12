@@ -24,18 +24,22 @@ export default function ForgotPasswordPage({ onClose, onSwitchToLogin, onSwitchT
     }
 
     try {
+      // Construct the proper redirect URL
+      const redirectTo = `${window.location.origin}/reset-password`
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: redirectTo,
       })
 
       if (error) {
+        console.error('Password reset error:', error)
         alert('Password reset failed: ' + error.message)
         setLoading(false)
         return
       }
 
       setEmailSent(true)
-      alert('Password reset email sent! Check your inbox.')
+      console.log('Password reset email sent successfully to:', email)
     } catch (error) {
       console.error('Password reset error:', error)
       alert('An error occurred while sending the reset email.')
@@ -69,6 +73,9 @@ export default function ForgotPasswordPage({ onClose, onSwitchToLogin, onSwitchT
           <h3 className="text-lg font-medium text-gray-800 mb-2">Check your email</h3>
           <p className="text-gray-600 mb-6">
             We've sent a password reset link to <strong>{email}</strong>
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Click the link in the email to reset your password. The link will expire in 24 hours.
           </p>
           <button
             onClick={onSwitchToLogin}
@@ -111,7 +118,7 @@ export default function ForgotPasswordPage({ onClose, onSwitchToLogin, onSwitchT
           disabled={loading}
           className="w-full bg-gray-800 text-white py-3 rounded-lg hover:bg-gray-900 transition-colors text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
         >
-          {loading ? 'Sending...' : 'Restore password'}
+          {loading ? 'Sending...' : 'Send Reset Email'}
         </button>
       </form>
 
