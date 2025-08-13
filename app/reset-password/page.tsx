@@ -56,6 +56,8 @@ export default function ResetPasswordRoute() {
               setError('Invalid or expired reset link: ' + verifyError.message)
             } else if (data.session) {
               console.log('Token verified successfully, showing reset form')
+              // Token is already verified and session is established
+              // We don't need to pass the token hash anymore
               setShowResetForm(true)
             } else {
               setError('Failed to verify reset token')
@@ -126,11 +128,10 @@ export default function ResetPasswordRoute() {
     )
   }
 
-  if (showResetForm && recoveryTokenHash) {
+  if (showResetForm) {
     return (
       <ResetPasswordPage 
         onComplete={handleResetComplete}
-        tokenHash={recoveryTokenHash}
       />
     )
   }

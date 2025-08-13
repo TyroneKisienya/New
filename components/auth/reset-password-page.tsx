@@ -25,6 +25,15 @@ export default function ResetPasswordPage({ onComplete, tokenHash }: ResetPasswo
   useEffect(() => {
     const checkSession = async () => {
       try {
+        // First check if we already have a valid session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          console.log('Found existing valid session')
+          setIsValidSession(true)
+          setIsCheckingSession(false)
+          return
+        }
+
         // If we have a token hash from the route, verify it
         if (tokenHash) {
           console.log('Using token hash from route...')
@@ -66,15 +75,8 @@ export default function ResetPasswordPage({ onComplete, tokenHash }: ResetPasswo
               setIsValidSession(false)
             }
           } else {
-            // Check if user has an active session (already logged in)
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session) {
-              console.log('Found existing valid session')
-              setIsValidSession(true)
-            } else {
-              console.log('No valid session found')
-              setIsValidSession(false)
-            }
+            console.log('No valid session or token found')
+            setIsValidSession(false)
           }
         }
       } catch (error) {
