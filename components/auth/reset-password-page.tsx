@@ -5,13 +5,10 @@ import { useRouter } from 'next/navigation'
 
 interface ResetPasswordPageProps {
   onComplete?: () => void
-  recoveryTokens?: {
-    accessToken: string
-    refreshToken: string
-  }
+  tokenHash?: string
 }
 
-export default function ResetPasswordPage({ onComplete, recoveryTokens }: ResetPasswordPageProps) {
+export default function ResetPasswordPage({ onComplete, tokenHash }: ResetPasswordPageProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -28,20 +25,20 @@ export default function ResetPasswordPage({ onComplete, recoveryTokens }: ResetP
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // If we have recovery tokens from the route, use them
-        if (recoveryTokens) {
-          console.log('Using recovery tokens from route...')
+        // If we have a token hash from the route, verify it
+        if (tokenHash) {
+          console.log('Using token hash from route...')
           
-          const { data, error } = await supabase.auth.setSession({
-            access_token: recoveryTokens.accessToken,
-            refresh_token: recoveryTokens.refreshToken
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery'
           })
           
           if (!error && data.session) {
-            console.log('Recovery session set successfully from tokens')
+            console.log('Token hash verified successfully')
             setIsValidSession(true)
           } else {
-            console.error('Error setting recovery session from tokens:', error)
+            console.error('Error verifying token hash:', error)
             setIsValidSession(false)
           }
         } else {
@@ -49,24 +46,23 @@ export default function ResetPasswordPage({ onComplete, recoveryTokens }: ResetP
           const urlParams = new URLSearchParams(window.location.search)
           const hashParams = new URLSearchParams(window.location.hash.substring(1))
           
-          const accessToken = urlParams.get('access_token') || hashParams.get('access_token')
-          const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token')
+          const urlTokenHash = urlParams.get('token_hash') || hashParams.get('token_hash')
           const type = urlParams.get('type') || hashParams.get('type')
           
-          console.log('Checking URL params for recovery tokens:', { accessToken, refreshToken, type })
+          console.log('Checking URL params for token hash:', { urlTokenHash, type })
 
-          if (type === 'recovery' && accessToken && refreshToken) {
-            // Set the session for password recovery
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
+          if (type === 'recovery' && urlTokenHash) {
+            // Verify the token hash
+            const { data, error } = await supabase.auth.verifyOtp({
+              token_hash: urlTokenHash,
+              type: 'recovery'
             })
             
             if (!error && data.session) {
-              console.log('Recovery session set successfully from URL')
+              console.log('Token hash verified successfully from URL')
               setIsValidSession(true)
             } else {
-              console.error('Error setting recovery session from URL:', error)
+              console.error('Error verifying token hash from URL:', error)
               setIsValidSession(false)
             }
           } else {
@@ -90,7 +86,7 @@ export default function ResetPasswordPage({ onComplete, recoveryTokens }: ResetP
     }
 
     checkSession()
-  }, [recoveryTokens])
+  }, [tokenHash])
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()

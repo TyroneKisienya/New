@@ -10,10 +10,7 @@ export default function ResetPasswordRoute() {
   const [showResetForm, setShowResetForm] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [recoveryTokens, setRecoveryTokens] = useState<{
-    accessToken: string
-    refreshToken: string
-  } | null>(null)
+  const [recoveryTokenHash, setRecoveryTokenHash] = useState<string | null>(null)
 
   useEffect(() => {
     const handlePasswordReset = async () => {
@@ -22,8 +19,7 @@ export default function ResetPasswordRoute() {
         const urlParams = new URLSearchParams(window.location.search)
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
         
-        const accessToken = urlParams.get('access_token') || hashParams.get('access_token')
-        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token')
+        const tokenHash = urlParams.get('token_hash') || hashParams.get('token_hash')
         const type = urlParams.get('type') || hashParams.get('type')
         const urlError = urlParams.get('error') || hashParams.get('error')
         
@@ -32,11 +28,9 @@ export default function ResetPasswordRoute() {
         console.log('Reset route - Hash params:', Object.fromEntries(hashParams))
         console.log('Reset route - Extracted values:', { 
           type, 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken,
+          hasTokenHash: !!tokenHash,
           error: urlError,
-          accessTokenLength: accessToken?.length,
-          refreshTokenLength: refreshToken?.length
+          tokenHashLength: tokenHash?.length
         })
 
         // Handle URL errors
@@ -47,14 +41,29 @@ export default function ResetPasswordRoute() {
         }
 
         // Check if this is a valid password recovery
-        if (type === 'recovery' && accessToken && refreshToken) {
-          console.log('Valid recovery tokens found, storing for reset form...')
+        if (type === 'recovery' && tokenHash) {
+          console.log('Valid recovery token found, verifying...')
           
-          // Store the tokens to pass to the reset form
-          setRecoveryTokens({ accessToken, refreshToken })
-          setShowResetForm(true)
-          
-          // Don't clean up URL parameters yet - let the reset form handle the session
+          try {
+            // Verify the token hash and get session
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: 'recovery'
+            })
+            
+            if (verifyError) {
+              console.error('Token verification error:', verifyError)
+              setError('Invalid or expired reset link: ' + verifyError.message)
+            } else if (data.session) {
+              console.log('Token verified successfully, showing reset form')
+              setShowResetForm(true)
+            } else {
+              setError('Failed to verify reset token')
+            }
+          } catch (verifyErr) {
+            console.error('Token verification failed:', verifyErr)
+            setError('Failed to verify reset token')
+          }
           
         } else {
           console.log('Invalid or missing recovery parameters')
@@ -117,11 +126,11 @@ export default function ResetPasswordRoute() {
     )
   }
 
-  if (showResetForm && recoveryTokens) {
+  if (showResetForm && recoveryTokenHash) {
     return (
       <ResetPasswordPage 
         onComplete={handleResetComplete}
-        recoveryTokens={recoveryTokens}
+        tokenHash={recoveryTokenHash}
       />
     )
   }
