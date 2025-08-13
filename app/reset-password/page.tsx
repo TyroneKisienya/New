@@ -10,6 +10,10 @@ export default function ResetPasswordRoute() {
   const [showResetForm, setShowResetForm] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [recoveryTokens, setRecoveryTokens] = useState<{
+    accessToken: string
+    refreshToken: string
+  } | null>(null)
 
   useEffect(() => {
     const handlePasswordReset = async () => {
@@ -44,27 +48,17 @@ export default function ResetPasswordRoute() {
 
         // Check if this is a valid password recovery
         if (type === 'recovery' && accessToken && refreshToken) {
-          console.log('Setting recovery session...')
+          console.log('Valid recovery tokens found, storing for reset form...')
           
-          // Set the session for password recovery
-          const { data, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          })
+          // Store the tokens to pass to the reset form
+          setRecoveryTokens({ accessToken, refreshToken })
+          setShowResetForm(true)
           
-          if (sessionError) {
-            console.error('Session error:', sessionError)
-            setError('Failed to validate reset link: ' + sessionError.message)
-          } else if (data.session) {
-            console.log('Session set successfully, showing reset form')
-            setShowResetForm(true)
-            // Clean up URL parameters
-            window.history.replaceState({}, document.title, window.location.pathname)
-          } else {
-            setError('No valid session created')
-          }
+          // Don't clean up URL parameters yet - let the reset form handle the session
+          
         } else {
-          setError('Invalid password reset link')
+          console.log('Invalid or missing recovery parameters')
+          setError('Invalid password reset link - missing required parameters')
         }
         
       } catch (err) {
@@ -79,6 +73,8 @@ export default function ResetPasswordRoute() {
   }, [])
 
   const handleResetComplete = () => {
+    // Clean up URL parameters after successful reset
+    window.history.replaceState({}, document.title, window.location.pathname)
     router.push('/')
   }
 
@@ -121,8 +117,13 @@ export default function ResetPasswordRoute() {
     )
   }
 
-  if (showResetForm) {
-    return <ResetPasswordPage onComplete={handleResetComplete} />
+  if (showResetForm && recoveryTokens) {
+    return (
+      <ResetPasswordPage 
+        onComplete={handleResetComplete}
+        recoveryTokens={recoveryTokens}
+      />
+    )
   }
 
   return null

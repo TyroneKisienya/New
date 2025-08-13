@@ -5,9 +5,13 @@ import { useRouter } from 'next/navigation'
 
 interface ResetPasswordPageProps {
   onComplete?: () => void
+  recoveryTokens?: {
+    accessToken: string
+    refreshToken: string
+  }
 }
 
-export default function ResetPasswordPage({ onComplete }: ResetPasswordPageProps) {
+export default function ResetPasswordPage({ onComplete, recoveryTokens }: ResetPasswordPageProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -24,35 +28,57 @@ export default function ResetPasswordPage({ onComplete }: ResetPasswordPageProps
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Check if we have URL parameters for password recovery
-        const urlParams = new URLSearchParams(window.location.search)
-        const accessToken = urlParams.get('access_token')
-        const refreshToken = urlParams.get('refresh_token')
-        const type = urlParams.get('type')
-        
-        console.log('URL params:', { accessToken, refreshToken, type })
-
-        if (type === 'recovery' && accessToken && refreshToken) {
-          // Set the session for password recovery
+        // If we have recovery tokens from the route, use them
+        if (recoveryTokens) {
+          console.log('Using recovery tokens from route...')
+          
           const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
+            access_token: recoveryTokens.accessToken,
+            refresh_token: recoveryTokens.refreshToken
           })
           
           if (!error && data.session) {
-            console.log('Recovery session set successfully')
+            console.log('Recovery session set successfully from tokens')
             setIsValidSession(true)
           } else {
-            console.error('Error setting recovery session:', error)
+            console.error('Error setting recovery session from tokens:', error)
             setIsValidSession(false)
           }
         } else {
-          // Check if user has an active session (already logged in)
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session) {
-            setIsValidSession(true)
+          // Fallback: Check for URL parameters (for direct access)
+          const urlParams = new URLSearchParams(window.location.search)
+          const hashParams = new URLSearchParams(window.location.hash.substring(1))
+          
+          const accessToken = urlParams.get('access_token') || hashParams.get('access_token')
+          const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token')
+          const type = urlParams.get('type') || hashParams.get('type')
+          
+          console.log('Checking URL params for recovery tokens:', { accessToken, refreshToken, type })
+
+          if (type === 'recovery' && accessToken && refreshToken) {
+            // Set the session for password recovery
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            })
+            
+            if (!error && data.session) {
+              console.log('Recovery session set successfully from URL')
+              setIsValidSession(true)
+            } else {
+              console.error('Error setting recovery session from URL:', error)
+              setIsValidSession(false)
+            }
           } else {
-            setIsValidSession(false)
+            // Check if user has an active session (already logged in)
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+              console.log('Found existing valid session')
+              setIsValidSession(true)
+            } else {
+              console.log('No valid session found')
+              setIsValidSession(false)
+            }
           }
         }
       } catch (error) {
@@ -64,7 +90,7 @@ export default function ResetPasswordPage({ onComplete }: ResetPasswordPageProps
     }
 
     checkSession()
-  }, [])
+  }, [recoveryTokens])
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,6 +115,16 @@ export default function ResetPasswordPage({ onComplete }: ResetPasswordPageProps
     }
 
     try {
+      // Verify we have a valid session before updating password
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        console.error('No active session for password update')
+        alert('Session expired. Please request a new password reset.')
+        setLoading(false)
+        return
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: passwords.password
       })
@@ -103,14 +139,13 @@ export default function ResetPasswordPage({ onComplete }: ResetPasswordPageProps
       console.log('Password updated successfully')
       setPasswordResetSuccess(true)
       
-      // Clean up URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname)
-      
       // Auto-redirect after 3 seconds
       setTimeout(() => {
         if (onComplete) {
           onComplete()
         } else {
+          // Clean up URL and go to home
+          window.history.replaceState({}, document.title, window.location.pathname)
           router.push('/')
         }
       }, 3000)
