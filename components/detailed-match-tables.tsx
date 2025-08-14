@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp, Star, Loader2, AlertCircle, ChevronLeft, ChevronRight, Calendar } from "lucide-react"
@@ -53,7 +53,7 @@ export function DetailedMatchTables({
   onClearFilters,
   filterStats
 }: DetailedMatchTablesProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["football", "fixtures"])
+  const [expandedSections, setExpandedSections] = useState<string[]>([])
   
   // Use the original hooks as fallback when filtered data is not provided
   const { matches: originalMatches, loading, error, refetch, isUsingMockData } = useLiveFootballData()
@@ -74,9 +74,84 @@ export function DetailedMatchTables({
   const matches = filteredMatches.length > 0 || selectedLeague ? filteredMatches : originalMatches
   const fixtures = filteredFixtures.length > 0 || selectedLeague ? filteredFixtures : originalFixtures
 
+  // Auto-expand sections based on selected league
+  useEffect(() => {
+    if (selectedLeague) {
+      // When a league is selected, find which sections have matches and auto-expand them
+      const sectionsToExpand: string[] = []
+      
+      // Check if there are live matches for this league
+      if (matches.length > 0) {
+        sectionsToExpand.push("football")
+        
+        // Also expand the specific league sections
+        const groupedMatches = groupMatches(matches)
+        Object.keys(groupedMatches).forEach(leagueKey => {
+          sectionsToExpand.push(leagueKey)
+        })
+      }
+      
+      // Check if there are fixtures for this league
+      if (fixtures.length > 0) {
+        sectionsToExpand.push("fixtures")
+        
+        // Also expand the specific fixture league sections
+        const groupedFixtures = groupMatches(fixtures)
+        Object.keys(groupedFixtures).forEach(leagueKey => {
+          sectionsToExpand.push(`fixture-${leagueKey}`)
+        })
+      }
+      
+      setExpandedSections(sectionsToExpand)
+    } else {
+      // When no league is selected, show default expanded sections
+      setExpandedSections(["football", "fixtures"])
+    }
+  }, [selectedLeague, matches, fixtures])
+
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
   }
+
+  // Helper function to group matches by league
+  const groupMatches = (matchList: Match[]) => {
+    return matchList.reduce((groups: any, match) => {
+      const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
+      if (!groups[leagueKey]) {
+        groups[leagueKey] = {
+          name: match.league,
+          logo: match.leagueLogo,
+          matches: []
+        }
+      }
+      groups[leagueKey].matches.push({
+        id: match.id,
+        time: match.time,
+        status: match.status.toUpperCase(),
+        homeTeam: {
+          name: match.homeTeam,
+          logo: match.homeTeamLogo
+        },
+        awayTeam: {
+          name: match.awayTeam,
+          logo: match.awayTeamLogo
+        },
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+        venue: match.venue,
+        referee: match.referee,
+        odds: match.odds,
+        additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
+      })
+      return groups
+    }, {})
+  }
+
+  // Group matches by league
+  const groupedMatches = useMemo(() => groupMatches(matches), [matches])
+
+  // Group fixtures by league
+  const groupedFixtures = useMemo(() => groupMatches(fixtures), [fixtures])
 
   // Add a filter status indicator
   const renderFilterStatus = () => {
@@ -110,76 +185,12 @@ export function DetailedMatchTables({
     )
   }
 
-  // Group matches by league
-  const groupedMatches = useMemo(() => {
-    return matches.reduce((groups: any, match) => {
-      const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
-      if (!groups[leagueKey]) {
-        groups[leagueKey] = {
-          name: match.league,
-          logo: match.leagueLogo,
-          matches: []
-        }
-      }
-      groups[leagueKey].matches.push({
-        id: match.id,
-        time: match.time,
-        status: match.status.toUpperCase(),
-        homeTeam: {
-          name: match.homeTeam,
-          logo: match.homeTeamLogo
-        },
-        awayTeam: {
-          name: match.awayTeam,
-          logo: match.awayTeamLogo
-        },
-        homeScore: match.homeScore,
-        awayScore: match.awayScore,
-        venue: match.venue,
-        referee: match.referee,
-        odds: match.odds,
-        additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
-      })
-      return groups
-    }, {})
-  }, [matches])
-
-  // Group fixtures by league
-  const groupedFixtures = useMemo(() => {
-    return fixtures.reduce((groups: any, match) => {
-      const leagueKey = match.league.toLowerCase().replace(/\s+/g, '-')
-      if (!groups[leagueKey]) {
-        groups[leagueKey] = {
-          name: match.league,
-          logo: match.leagueLogo,
-          matches: []
-        }
-      }
-      groups[leagueKey].matches.push({
-        id: match.id,
-        time: match.time,
-        status: match.status.toUpperCase(),
-        homeTeam: {
-          name: match.homeTeam,
-          logo: match.homeTeamLogo
-        },
-        awayTeam: {
-          name: match.awayTeam,
-          logo: match.awayTeamLogo
-        },
-        homeScore: match.homeScore,
-        awayScore: match.awayScore,
-        venue: match.venue,
-        referee: match.referee,
-        odds: match.odds,
-        additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
-      })
-      return groups
-    }, {})
-  }, [fixtures])
-
   const renderFootballSection = () => {
     const isFootballExpanded = expandedSections.includes("football")
+    const hasMatches = Object.keys(groupedMatches).length > 0
+
+    // Don't render if no matches and a league is selected
+    if (!hasMatches && selectedLeague) return null
 
     return (
       <Card className="bg-gray-800 border-gray-700">
@@ -223,9 +234,24 @@ export function DetailedMatchTables({
           </div>
         </CardHeader>
 
-        {isFootballExpanded && (
+        {isFootballExpanded && hasMatches && (
           <CardContent className="p-0">
             {Object.entries(groupedMatches).map(([leagueKey, leagueData]) => renderLeague(leagueKey, leagueData))}
+          </CardContent>
+        )}
+
+        {isFootballExpanded && !hasMatches && !loading && (
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+            <p className="text-yellow-400 mb-2">No live matches available</p>
+            <p className="text-gray-500 text-sm mb-4">Check back later for live matches</p>
+            <Button
+              variant="outline"
+              onClick={refetch}
+              className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
+            >
+              Refresh Data
+            </Button>
           </CardContent>
         )}
       </Card>
@@ -234,6 +260,7 @@ export function DetailedMatchTables({
 
   const renderFixtureSection = () => {
     const isFixtureExpanded = expandedSections.includes("fixtures")
+    const hasFixtures = Object.keys(groupedFixtures).length > 0
 
     return (
       <Card className="bg-gray-800 border-gray-700">
@@ -323,7 +350,7 @@ export function DetailedMatchTables({
             </div>
 
             {/* Fixtures Content */}
-            {Object.keys(groupedFixtures).length > 0 ? (
+            {hasFixtures ? (
               Object.entries(groupedFixtures).map(([leagueKey, leagueData]) => 
                 renderLeague(`fixture-${leagueKey}`, leagueData)
               )
@@ -409,8 +436,8 @@ export function DetailedMatchTables({
           </div>
         </div>
 
-        {/* Matches */}
-        {isExpanded && (
+        {/* Matches - Always show when league is selected, otherwise follow expand state */}
+        {(isExpanded || selectedLeague) && (
           <div className="bg-white">
             {leagueData.matches.map((match: any, index: number) => (
               <div
@@ -568,7 +595,7 @@ export function DetailedMatchTables({
         )}
 
         {/* No matches in this league */}
-        {isExpanded && leagueData.matches.length === 0 && (
+        {(isExpanded || selectedLeague) && leagueData.matches.length === 0 && (
           <div className="bg-white p-4 text-center text-gray-500">
             No matches available for this league
           </div>
@@ -594,73 +621,32 @@ export function DetailedMatchTables({
       {renderFilterStatus()}
       
       {/* Live Football Section */}
-      {Object.keys(groupedMatches).length > 0 ? (
-        renderFootballSection()
-      ) : selectedLeague && !loading ? (
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-            <p className="text-yellow-400 mb-2">No live matches for {selectedLeague}</p>
-            <p className="text-gray-500 text-sm mb-4">
-              Try viewing all leagues or check back later for live matches
-            </p>
-            {onClearFilters && (
-              <Button
-                variant="outline"
-                onClick={onClearFilters}
-                className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10 mr-2"
-              >
-                View All Leagues
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={refetch}
-              className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
-            >
-              Refresh Data
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-400 mb-2">No live football matches available</p>
-            <p className="text-gray-500 text-sm mb-4">Check back later for live matches</p>
-            <Button
-              variant="outline"
-              onClick={refetch}
-              className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
-            >
-              Refresh Data
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {renderFootballSection()}
 
       {/* Fixture Section */}
       {renderFixtureSection()}
 
-      {/* Other Sports - Collapsed by default */}
-      <div className="space-y-2">
-        {["Hockey", "Tennis", "Basketball", "Baseball"].map((sport) => (
-          <Card key={sport} className="bg-gray-800 border-gray-700">
-            <CardHeader
-              className="py-3 px-4 cursor-pointer hover:bg-gray-700"
-              onClick={() => toggleSection(sport.toLowerCase())}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-white font-medium">🏒 {sport}</span>
-                  <span className="text-gray-400 text-xs">(Coming Soon)</span>
+      {/* Other Sports - Only show when no specific league is selected */}
+      {!selectedLeague && (
+        <div className="space-y-2">
+          {["Hockey", "Tennis", "Basketball", "Baseball"].map((sport) => (
+            <Card key={sport} className="bg-gray-800 border-gray-700">
+              <CardHeader
+                className="py-3 px-4 cursor-pointer hover:bg-gray-700"
+                onClick={() => toggleSection(sport.toLowerCase())}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-white font-medium">🏒 {sport}</span>
+                    <span className="text-gray-400 text-xs">(Coming Soon)</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

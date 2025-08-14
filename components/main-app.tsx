@@ -265,7 +265,7 @@ export function MainApp() {
           {/* Left spacing for desktop sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0"></div>
 
-          {/* Center content with filtered data */}
+          {/* Center content with filtered data and league selection integration */}
           <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide pb-16 lg:pb-0">
             <MainContent 
               onAddToBetSlip={addToBetSlip} 
@@ -274,6 +274,7 @@ export function MainApp() {
               filteredMatches={filteredMatches}
               filteredFixtures={filteredFixtures}
               onClearFilters={clearFilters}
+              onLeagueSelect={handleLeagueSelection}
               filterStats={filterStats}
             />
 

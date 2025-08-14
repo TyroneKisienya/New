@@ -4,7 +4,12 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronRight, ChevronUp, ChevronLeft } from "lucide-react"
 
-export function TopLeagues() {
+interface TopLeaguesProps {
+  onLeagueSelect?: (leagueName: string | null) => void
+  selectedLeague?: string | null
+}
+
+export function TopLeagues({ onLeagueSelect, selectedLeague }: TopLeaguesProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -63,6 +68,52 @@ export function TopLeagues() {
     }
   }
 
+  const handleLeagueClick = (leagueName: string) => {
+    if (onLeagueSelect) {
+      // If clicking the same league, deselect it
+      const newSelection = selectedLeague === leagueName ? null : leagueName
+      onLeagueSelect(newSelection)
+    }
+  }
+
+  // Enhanced league matching function to handle different naming conventions
+  const isLeagueSelected = (leagueName: string) => {
+    if (!selectedLeague) return false
+
+    const normalize = (str: string) => str.toLowerCase().trim()
+    const selectedNorm = normalize(selectedLeague)
+    const leagueNorm = normalize(leagueName)
+
+    // Direct match
+    if (selectedNorm === leagueNorm) return true
+
+    // Common league name mappings for better matching
+    const leagueMappings: { [key: string]: string[] } = {
+      'uefa champions league': ['champions league', 'ucl'],
+      'england premier league': ['premier league', 'epl', 'english premier league'],
+      'spain la liga': ['la liga', 'spanish la liga', 'laliga'],
+      'italy serie a': ['serie a', 'italian serie a'],
+      'germany bundesliga': ['bundesliga', 'german bundesliga'],
+      'france ligue 1': ['ligue 1', 'french ligue 1'],
+      'uefa europa league': ['europa league', 'uel'],
+      'uefa super cup': ['super cup', 'uefa super cup'],
+      'germany dfl-super cup': ['dfl-super cup', 'german super cup']
+    }
+
+    // Check if either league name maps to the other
+    for (const [mainName, aliases] of Object.entries(leagueMappings)) {
+      const allNames = [mainName, ...aliases]
+      
+      const hasSelectedLeague = allNames.some(name => selectedNorm.includes(name) || name.includes(selectedNorm))
+      const hasCurrentLeague = allNames.some(name => leagueNorm.includes(name) || name.includes(leagueNorm))
+      
+      if (hasSelectedLeague && hasCurrentLeague) return true
+    }
+
+    // Partial matching as fallback
+    return selectedNorm.includes(leagueNorm) || leagueNorm.includes(selectedNorm)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -113,10 +164,19 @@ export function TopLeagues() {
             {leagues.map((league, index) => (
               <div
                 key={index}
-                className="flex-shrink-0 text-center bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors cursor-pointer"
+                className={`flex-shrink-0 text-center rounded-lg p-4 border transition-all duration-200 cursor-pointer ${
+                  isLeagueSelected(league.name)
+                    ? "bg-yellow-400/10 border-yellow-400/30 shadow-lg ring-2 ring-yellow-400/20"
+                    : "bg-gray-800 border-gray-700 hover:border-gray-600 hover:shadow-md hover:bg-gray-750"
+                }`}
                 style={{ width: "200px", minWidth: "200px" }}
+                onClick={() => handleLeagueClick(league.name)}
               >
-                <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center mb-3 mx-auto border border-gray-600 p-2">
+                <div className={`w-20 h-20 rounded-lg flex items-center justify-center mb-3 mx-auto border p-2 transition-all duration-200 ${
+                  isLeagueSelected(league.name) 
+                    ? "bg-yellow-50 border-yellow-300" 
+                    : "bg-white border-gray-600"
+                }`}>
                   <img
                     src={league.logo || "/placeholder.svg"}
                     alt={league.name}
@@ -126,8 +186,23 @@ export function TopLeagues() {
                     }}
                   />
                 </div>
-                <div className="text-white text-sm font-medium leading-tight mb-1">{league.name}</div>
-                <div className="text-gray-400 text-xs">{league.subtitle}</div>
+                <div className={`text-sm font-medium leading-tight mb-1 transition-colors duration-200 ${
+                  isLeagueSelected(league.name) ? "text-yellow-400" : "text-white"
+                }`}>
+                  {league.name}
+                </div>
+                <div className={`text-xs transition-colors duration-200 ${
+                  isLeagueSelected(league.name) ? "text-yellow-300" : "text-gray-400"
+                }`}>
+                  {league.subtitle}
+                </div>
+                
+                {/* Enhanced selection indicator */}
+                {isLeagueSelected(league.name) && (
+                  <div className="flex justify-center mt-2">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

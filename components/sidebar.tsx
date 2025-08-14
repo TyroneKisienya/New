@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronDown, ChevronRight, Search, Settings, Menu, X, Trophy, Target, Gamepad2, Loader2, AlertCircle } from "lucide-react"
+import { ChevronDown, ChevronRight, Search, Settings, Menu, X, Trophy, Target, Gamepad2, Loader2, AlertCircle, Star } from "lucide-react"
 import { useLiveFootballData } from "@/hooks/use-live-football-data"
 import { useFixtureData } from "@/hooks/use-fixture-data"
 
@@ -28,6 +28,46 @@ interface LeagueData {
   hasFixtures: boolean
 }
 
+// Top leagues configuration with their logos
+const TOP_LEAGUES = [
+  {
+    name: "UEFA Champions League",
+    displayName: "Champions League",
+    logo: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/UEFA%20Champions%20League-1038OsVDMz7U7fGckCiEjuVRDYluAV.jpeg",
+    country: "Europe"
+  },
+  {
+    name: "England Premier League",
+    displayName: "Premier League",
+    logo: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/England%20Premier%20League-6grdGDMet2AzcnS6FgzSpIZSBwSR0K.png",
+    country: "England"
+  },
+  {
+    name: "Spain La Liga",
+    displayName: "La Liga",
+    logo: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Spain%20La%20Liga-vVMKZjwCJHTdItKFCpcbDBhQWRtEXj.png",
+    country: "Spain"
+  },
+  {
+    name: "Italy Serie A",
+    displayName: "Serie A",
+    logo: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/taly%20Serie%20A-9BFcrHrLend4M8bRcV3OPiWJQ9dp3j.png",
+    country: "Italy"
+  },
+  {
+    name: "Germany Bundesliga",
+    displayName: "Bundesliga",
+    logo: "/placeholder.svg",
+    country: "Germany"
+  },
+  {
+    name: "France Ligue 1",
+    displayName: "Ligue 1",
+    logo: "/placeholder.svg",
+    country: "France"
+  }
+]
+
 const SearchBar = ({ value, onChange }: SearchBarProps) => (
   <div className="relative">
     <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
@@ -46,7 +86,7 @@ export function Sidebar({
   onLeagueSelect,
   selectedLeague
 }: SidebarProps = {}) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["dynamic-leagues"])
+  const [expandedSections, setExpandedSections] = useState<string[]>(["top-leagues"])
   const [internalMobileSidebarOpen, setInternalMobileSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -59,7 +99,7 @@ export function Sidebar({
   const setIsMobileSidebarOpen = propSetMobileSidebarOpen ?? setInternalMobileSidebarOpen
 
   // Process API data to extract unique leagues with counts
-  const dynamicLeagues = useMemo(() => {
+  const allLeaguesData = useMemo(() => {
     const leagueMap = new Map<string, LeagueData>()
 
     // Process live matches
@@ -109,7 +149,36 @@ export function Sidebar({
     return Array.from(leagueMap.values()).sort((a, b) => b.count - a.count)
   }, [matches, fixtures])
 
-  // Extract country from league name (basic implementation)
+  // Get top leagues with data
+  const topLeaguesWithData = useMemo(() => {
+    return TOP_LEAGUES.map(topLeague => {
+      const matchingLeague = allLeaguesData.find(league => 
+        league.name.toLowerCase().includes(topLeague.name.toLowerCase()) ||
+        topLeague.name.toLowerCase().includes(league.name.toLowerCase())
+      )
+      
+      return {
+        ...topLeague,
+        count: matchingLeague?.count || 0,
+        isLive: matchingLeague?.isLive || false,
+        hasFixtures: matchingLeague?.hasFixtures || false,
+        hasData: !!matchingLeague
+      }
+    }).filter(league => league.hasData) // Only show top leagues that have data
+  }, [allLeaguesData])
+
+  // Get remaining leagues (not in top leagues)
+  const remainingLeagues = useMemo(() => {
+    const topLeagueNames = TOP_LEAGUES.map(tl => tl.name.toLowerCase())
+    return allLeaguesData.filter(league => 
+      !topLeagueNames.some(topName => 
+        league.name.toLowerCase().includes(topName) ||
+        topName.includes(league.name.toLowerCase())
+      )
+    )
+  }, [allLeaguesData])
+
+  // Extract country from league name (enhanced version)
   function extractCountryFromLeague(leagueName: string): string {
     const countryMappings: { [key: string]: string } = {
       'premier league': 'England',
@@ -120,6 +189,11 @@ export function Sidebar({
       'champions league': 'Europe',
       'europa league': 'Europe',
       'world cup': 'World',
+      'england': 'England',
+      'spain': 'Spain',
+      'germany': 'Germany',
+      'italy': 'Italy',
+      'france': 'France'
     }
 
     const lowerName = leagueName.toLowerCase()
@@ -129,20 +203,12 @@ export function Sidebar({
       }
     }
 
-    // Try to extract country from league name patterns
-    if (lowerName.includes('england') || lowerName.includes('english')) return 'England'
-    if (lowerName.includes('spain') || lowerName.includes('spanish')) return 'Spain'
-    if (lowerName.includes('germany') || lowerName.includes('german')) return 'Germany'
-    if (lowerName.includes('italy') || lowerName.includes('italian')) return 'Italy'
-    if (lowerName.includes('france') || lowerName.includes('french')) return 'France'
-    if (lowerName.includes('uefa') || lowerName.includes('champions')) return 'Europe'
-    
     return 'International'
   }
 
-  // Group leagues by country
-  const groupedDynamicLeagues = useMemo(() => {
-    return dynamicLeagues.reduce((groups: { [country: string]: LeagueData[] }, league) => {
+  // Group remaining leagues by country
+  const groupedRemainingLeagues = useMemo(() => {
+    return remainingLeagues.reduce((groups: { [country: string]: LeagueData[] }, league) => {
       const country = league.country || 'Other'
       if (!groups[country]) {
         groups[country] = []
@@ -150,14 +216,22 @@ export function Sidebar({
       groups[country].push(league)
       return groups
     }, {})
-  }, [dynamicLeagues])
+  }, [remainingLeagues])
 
   // Filter leagues based on search
+  const filteredTopLeagues = useMemo(() => {
+    if (!searchQuery) return topLeaguesWithData
+    return topLeaguesWithData.filter(league =>
+      league.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      league.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [topLeaguesWithData, searchQuery])
+
   const filteredGroupedLeagues = useMemo(() => {
-    if (!searchQuery) return groupedDynamicLeagues
+    if (!searchQuery) return groupedRemainingLeagues
 
     const filtered: { [country: string]: LeagueData[] } = {}
-    Object.entries(groupedDynamicLeagues).forEach(([country, leagues]) => {
+    Object.entries(groupedRemainingLeagues).forEach(([country, leagues]) => {
       const filteredLeagues = leagues.filter(league =>
         league.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -166,7 +240,7 @@ export function Sidebar({
       }
     })
     return filtered
-  }, [groupedDynamicLeagues, searchQuery])
+  }, [groupedRemainingLeagues, searchQuery])
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) =>
@@ -174,7 +248,7 @@ export function Sidebar({
     )
   }
 
-  // Single league selection handler
+  // Enhanced league selection handler
   const handleLeagueClick = (leagueName: string) => {
     // If clicking the same league, deselect it
     const newSelection = selectedLeague === leagueName ? null : leagueName
@@ -188,6 +262,19 @@ export function Sidebar({
 
     // Clear search after selection for better UX
     setSearchQuery("")
+  }
+
+  // Handle top league click
+  const handleTopLeagueClick = (topLeagueName: string) => {
+    // Find the matching league name from actual data
+    const matchingLeague = allLeaguesData.find(league => 
+      league.name.toLowerCase().includes(topLeagueName.toLowerCase()) ||
+      topLeagueName.toLowerCase().includes(league.name.toLowerCase())
+    )
+    
+    if (matchingLeague) {
+      handleLeagueClick(matchingLeague.name)
+    }
   }
 
   // View all leagues handler
@@ -229,7 +316,7 @@ export function Sidebar({
     }
   }, [isMobileSidebarOpen])
 
-  const totalMatches = dynamicLeagues.reduce((sum, league) => sum + league.count, 0)
+  const totalMatches = allLeaguesData.reduce((sum, league) => sum + league.count, 0)
   const isLoading = liveLoading || fixtureLoading
   const hasError = liveError || fixtureError
 
@@ -287,23 +374,23 @@ export function Sidebar({
             </Button>
           </div>
 
-          {/* Dynamic Leagues from API */}
+          {/* Top Leagues Section */}
           <div>
             <Button
               variant="ghost"
-              onClick={() => toggleSection("dynamic-leagues")}
+              onClick={() => toggleSection("top-leagues")}
               className="w-full justify-between text-yellow-400 hover:bg-gray-800 p-2 sm:p-3 rounded-lg group transition-all duration-200 h-auto min-h-[40px] sm:min-h-[48px]"
             >
               <div className="flex items-center space-x-2">
-                <Trophy className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium">Available Leagues</span>
+                <Star className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">Top Leagues</span>
                 {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full">
-                  {dynamicLeagues.length}
+                  {filteredTopLeagues.length}
                 </span>
-                {expandedSections.includes("dynamic-leagues") ? (
+                {expandedSections.includes("top-leagues") ? (
                   <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 flex-shrink-0" />
                 ) : (
                   <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 flex-shrink-0" />
@@ -311,86 +398,176 @@ export function Sidebar({
               </div>
             </Button>
 
-            {expandedSections.includes("dynamic-leagues") && (
-              <div className="ml-1 sm:ml-2 mt-2 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                {Object.entries(filteredGroupedLeagues).map(([country, leagues]) => (
-                  <div key={country}>
-                    <div className="flex items-center justify-between mb-2 px-2">
-                      <span className="text-gray-400 text-xs font-medium">{country}</span>
+            {expandedSections.includes("top-leagues") && (
+              <div className="ml-1 sm:ml-2 mt-2 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                {filteredTopLeagues.map((league) => (
+                  <div
+                    key={league.name}
+                    className={`flex items-center p-3 rounded-lg cursor-pointer transition-all duration-200 border ${
+                      selectedLeague && (
+                        selectedLeague === league.name ||
+                        allLeaguesData.find(l => 
+                          l.name.toLowerCase().includes(league.name.toLowerCase()) ||
+                          league.name.toLowerCase().includes(l.name.toLowerCase())
+                        )?.name === selectedLeague
+                      )
+                        ? "bg-yellow-400/10 border-yellow-400/30 shadow-md"
+                        : "bg-gray-800/50 border-gray-700 hover:bg-gray-800 hover:border-gray-600"
+                    }`}
+                    onClick={() => handleTopLeagueClick(league.name)}
+                  >
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3 flex-shrink-0 p-1">
+                      <img
+                        src={league.logo || "/placeholder.svg"}
+                        alt={league.displayName}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg?height=24&width=24&text=🏆"
+                        }}
+                      />
                     </div>
                     
-                    <div className="space-y-1">
-                      {leagues.map((league) => (
-                        <div
-                          key={league.name}
-                          className={`flex items-center p-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                            selectedLeague === league.name
-                              ? "bg-yellow-400/10 border border-yellow-400/20"
-                              : "hover:bg-gray-800"
-                          }`}
-                          onClick={() => handleLeagueClick(league.name)}
-                        >
-                          <img
-                            src={league.logo || "/placeholder.svg"}
-                            alt={league.name}
-                            className="w-5 h-5 object-contain mr-3 flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg?height=20&width=20&text=🏆"
-                            }}
-                          />
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2">
-                              <span className={`text-xs sm:text-sm font-medium truncate ${
-                                selectedLeague === league.name ? "text-yellow-400" : "text-gray-300"
-                              }`}>
-                                {league.name}
-                              </span>
-                              {league.isLive && (
-                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className="text-xs text-gray-500">
-                                {league.count} match{league.count !== 1 ? 'es' : ''}
-                              </span>
-                              {league.isLive && (
-                                <span className="text-xs text-red-400 font-medium">LIVE</span>
-                              )}
-                              {league.hasFixtures && !league.isLive && (
-                                <span className="text-xs text-blue-400">Fixtures</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Selection indicator */}
-                          {selectedLeague === league.name && (
-                            <div className="ml-2 w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0" />
-                          )}
-                        </div>
-                      ))}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-sm font-medium truncate ${
+                          selectedLeague && (
+                            selectedLeague === league.name ||
+                            allLeaguesData.find(l => 
+                              l.name.toLowerCase().includes(league.name.toLowerCase()) ||
+                              league.name.toLowerCase().includes(l.name.toLowerCase())
+                            )?.name === selectedLeague
+                          ) ? "text-yellow-400" : "text-white"
+                        }`}>
+                          {league.displayName}
+                        </span>
+                        {league.isLive && (
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-xs text-gray-400">
+                          {league.count} match{league.count !== 1 ? 'es' : ''}
+                        </span>
+                        {league.isLive && (
+                          <span className="text-xs text-red-400 font-medium">LIVE</span>
+                        )}
+                        {league.hasFixtures && !league.isLive && (
+                          <span className="text-xs text-blue-400">Fixtures</span>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Selection indicator */}
+                    {selectedLeague && (
+                      selectedLeague === league.name ||
+                      allLeaguesData.find(l => 
+                        l.name.toLowerCase().includes(league.name.toLowerCase()) ||
+                        league.name.toLowerCase().includes(l.name.toLowerCase())
+                      )?.name === selectedLeague
+                    ) && (
+                      <div className="ml-2 w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0" />
+                    )}
                   </div>
                 ))}
                 
-                {Object.keys(filteredGroupedLeagues).length === 0 && searchQuery && (
+                {filteredTopLeagues.length === 0 && searchQuery && (
                   <div className="text-center py-4 text-gray-500">
                     <Search className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-xs sm:text-sm">No leagues found</p>
-                    <p className="text-xs">Try a different search term</p>
-                  </div>
-                )}
-
-                {dynamicLeagues.length === 0 && !isLoading && (
-                  <div className="text-center py-4 text-gray-500">
-                    <Trophy className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-xs sm:text-sm">No leagues available</p>
-                    <p className="text-xs">Data will appear when matches are loaded</p>
+                    <p className="text-xs sm:text-sm">No top leagues found</p>
                   </div>
                 )}
               </div>
             )}
           </div>
+
+          {/* Other Available Leagues */}
+          {Object.keys(groupedRemainingLeagues).length > 0 && (
+            <div>
+              <Button
+                variant="ghost"
+                onClick={() => toggleSection("other-leagues")}
+                className="w-full justify-between text-gray-300 hover:bg-gray-800 p-2 sm:p-3 rounded-lg group transition-all duration-200 h-auto min-h-[40px] sm:min-h-[48px]"
+              >
+                <div className="flex items-center space-x-2">
+                  <Trophy className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium">Other Leagues</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full">
+                    {remainingLeagues.length}
+                  </span>
+                  {expandedSections.includes("other-leagues") ? (
+                    <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 flex-shrink-0" />
+                  )}
+                </div>
+              </Button>
+
+              {expandedSections.includes("other-leagues") && (
+                <div className="ml-1 sm:ml-2 mt-2 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                  {Object.entries(filteredGroupedLeagues).map(([country, leagues]) => (
+                    <div key={country}>
+                      <div className="flex items-center justify-between mb-2 px-2">
+                        <span className="text-gray-400 text-xs font-medium">{country}</span>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        {leagues.map((league) => (
+                          <div
+                            key={league.name}
+                            className={`flex items-center p-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                              selectedLeague === league.name
+                                ? "bg-yellow-400/10 border border-yellow-400/20"
+                                : "hover:bg-gray-800"
+                            }`}
+                            onClick={() => handleLeagueClick(league.name)}
+                          >
+                            <img
+                              src={league.logo || "/placeholder.svg"}
+                              alt={league.name}
+                              className="w-5 h-5 object-contain mr-3 flex-shrink-0"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder.svg?height=20&width=20&text=🏆"
+                              }}
+                            />
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <span className={`text-xs sm:text-sm font-medium truncate ${
+                                  selectedLeague === league.name ? "text-yellow-400" : "text-gray-300"
+                                }`}>
+                                  {league.name}
+                                </span>
+                                {league.isLive && (
+                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className="text-xs text-gray-500">
+                                  {league.count} match{league.count !== 1 ? 'es' : ''}
+                                </span>
+                                {league.isLive && (
+                                  <span className="text-xs text-red-400 font-medium">LIVE</span>
+                                )}
+                                {league.hasFixtures && !league.isLive && (
+                                  <span className="text-xs text-blue-400">Fixtures</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {selectedLeague === league.name && (
+                              <div className="ml-2 w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Selected League Summary */}
           {selectedLeague && (
@@ -447,7 +624,7 @@ export function Sidebar({
         </div>
       </div>
     )
-  }, [searchQuery, expandedSections, selectedLeague, dynamicLeagues, filteredGroupedLeagues, totalMatches, isLoading, hasError, handleLeagueClick, handleViewAll])
+  }, [searchQuery, expandedSections, selectedLeague, allLeaguesData, filteredTopLeagues, filteredGroupedLeagues, topLeaguesWithData, remainingLeagues, totalMatches, isLoading, hasError, handleLeagueClick, handleTopLeagueClick, handleViewAll])
 
   return (
     <>
