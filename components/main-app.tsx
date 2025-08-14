@@ -36,6 +36,9 @@ interface Bet {
   possibleProfit?: number
 }
 
+// Add new type for view mode
+type ViewMode = 'all' | 'live' | 'fixtures'
+
 // Auth Modal Component
 interface AuthModalProps {
   isOpen: boolean
@@ -95,6 +98,9 @@ export function MainApp() {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  
+  // Add new state for view mode
+  const [viewMode, setViewMode] = useState<ViewMode>('fixtures') // Default to fixtures
   
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -238,6 +244,15 @@ export function MainApp() {
     }
   }
 
+  // New handlers for view mode changes
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode)
+    // Clear league selection when changing view modes to show all relevant content
+    if (mode !== 'all') {
+      clearFilters()
+    }
+  }
+
   // Show reset password page if needed
   if (showResetPassword) {
     return <ResetPasswordPage onComplete={handleResetPasswordComplete} />
@@ -248,15 +263,22 @@ export function MainApp() {
       {/* Fixed Headers */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-lg">
         <TopHeader session={session} user={user} />
-        <MainHeader betCount={selectedBets.length} onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)} />
+        <MainHeader 
+          betCount={selectedBets.length} 
+          onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        />
       </div>
 
-      {/* Sidebar with single league selection */}
+      {/* Sidebar with view mode filtering */}
       <Sidebar 
         isMobileSidebarOpen={isMobileSidebarOpen}
         setIsMobileSidebarOpen={setIsMobileSidebarOpen}
         onLeagueSelect={handleLeagueSelection}
         selectedLeague={selectedLeague}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
       />
 
       {/* Main Layout - adjusted for fixed sidebars */}
@@ -265,7 +287,7 @@ export function MainApp() {
           {/* Left spacing for desktop sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0"></div>
 
-          {/* Center content with filtered data and league selection integration */}
+          {/* Center content with filtered data and view mode */}
           <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide pb-16 lg:pb-0">
             <MainContent 
               onAddToBetSlip={addToBetSlip} 
@@ -276,6 +298,8 @@ export function MainApp() {
               onClearFilters={clearFilters}
               onLeagueSelect={handleLeagueSelection}
               filterStats={filterStats}
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
             />
 
             {/* Wheel - only visible on mobile */}

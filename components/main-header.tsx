@@ -3,14 +3,23 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, ShoppingCart, Settings, Menu, X } from "lucide-react"
+import { Search, ShoppingCart, Settings, Menu, X, Radio, Calendar, Target } from "lucide-react"
+
+type ViewMode = 'all' | 'live' | 'fixtures'
 
 interface MainHeaderProps {
   betCount: number
   onToggleBetSlip: () => void
+  viewMode?: ViewMode
+  onViewModeChange?: (mode: ViewMode) => void
 }
 
-export function MainHeader({ betCount, onToggleBetSlip }: MainHeaderProps) {
+export function MainHeader({ 
+  betCount, 
+  onToggleBetSlip, 
+  viewMode = 'fixtures',
+  onViewModeChange 
+}: MainHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   
@@ -38,39 +47,103 @@ export function MainHeader({ betCount, onToggleBetSlip }: MainHeaderProps) {
     { name: "Rugby", active: false },
   ]
 
+  const handleViewModeClick = (mode: ViewMode) => {
+    onViewModeChange?.(mode)
+    // Close mobile menu when selecting a view mode
+    setIsMobileMenuOpen(false)
+  }
+
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
-      {/* Desktop View - Keep as is */}
+      {/* Desktop View - Enhanced with view mode buttons */}
       <div className="hidden lg:flex lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         
-        {/* Left Section: All main buttons including sports */}
+        {/* Left Section: Primary actions and view mode toggles */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Primary Actions */}
-          <Button variant="ghost" className="text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30">
-            Sportsbook
-          </Button>
-          <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-gray-700">
-            Live
-          </Button>
+          {/* View Mode Toggle Buttons */}
+          <div className="flex items-center bg-gray-900 rounded-lg p-1 mr-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewModeClick('all')}
+              className={`px-3 py-1.5 text-xs transition-all duration-200 ${
+                viewMode === 'all'
+                  ? "text-yellow-400 bg-yellow-400/20 shadow-sm"
+                  : "text-gray-300 hover:text-white hover:bg-gray-700"
+              }`}
+            >
+              <Target className="w-3 h-3 mr-1" />
+              Sportsbook
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewModeClick('live')}
+              className={`px-3 py-1.5 text-xs transition-all duration-200 ${
+                viewMode === 'live'
+                  ? "text-red-400 bg-red-400/20 shadow-sm"
+                  : "text-gray-300 hover:text-white hover:bg-gray-700"
+              }`}
+            >
+              <Radio className="w-3 h-3 mr-1" />
+              Live
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewModeClick('fixtures')}
+              className={`px-3 py-1.5 text-xs transition-all duration-200 ${
+                viewMode === 'fixtures'
+                  ? "text-blue-400 bg-blue-400/20 shadow-sm"
+                  : "text-gray-300 hover:text-white hover:bg-gray-700"
+              }`}
+            >
+              <Calendar className="w-3 h-3 mr-1" />
+              Fixtures
+            </Button>
+          </div>
+
+          {/* Settings */}
           <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white">
             <Settings className="w-4 h-4" />
           </Button>
 
-          {/* Sport Buttons */}
-          {sports.map((sport) => (
-            <Button
-              key={sport.name}
-              variant="ghost"
-              size="sm"
-              className={
-                sport.active
-                  ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30"
-                  : "text-gray-300 hover:text-white hover:bg-gray-700"
-              }
-            >
-              {sport.name}
-            </Button>
-          ))}
+          {/* Sport Buttons - Only show when in 'all' mode */}
+          {viewMode === 'all' && (
+            <>
+              {sports.map((sport) => (
+                <Button
+                  key={sport.name}
+                  variant="ghost"
+                  size="sm"
+                  className={
+                    sport.active
+                      ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30"
+                      : "text-gray-300 hover:text-white hover:bg-gray-700"
+                  }
+                >
+                  {sport.name}
+                </Button>
+              ))}
+            </>
+          )}
+
+          {/* View Mode Status Indicator */}
+          {viewMode !== 'all' && (
+            <div className="flex items-center space-x-2 ml-4 px-3 py-1.5 bg-gray-900 rounded-lg border border-gray-600">
+              {viewMode === 'live' ? (
+                <>
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-red-400 text-xs font-medium">Live Matches Only</span>
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-3 h-3 text-blue-400" />
+                  <span className="text-blue-400 text-xs font-medium">Upcoming Fixtures</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Section: Search + Betslip */}
@@ -113,13 +186,45 @@ export function MainHeader({ betCount, onToggleBetSlip }: MainHeaderProps) {
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
 
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search"
-              className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-full"
-            />
+          {/* View Mode Toggle - Mobile Compact */}
+          <div className="flex items-center bg-gray-900 rounded-lg p-1 flex-1 max-w-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewModeClick('all')}
+              className={`px-2 py-1 text-xs flex-1 ${
+                viewMode === 'all'
+                  ? "text-yellow-400 bg-yellow-400/20"
+                  : "text-gray-300"
+              }`}
+            >
+              All
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewModeClick('live')}
+              className={`px-2 py-1 text-xs flex-1 ${
+                viewMode === 'live'
+                  ? "text-red-400 bg-red-400/20"
+                  : "text-gray-300"
+              }`}
+            >
+              <Radio className="w-3 h-3 mr-1" />
+              Live
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewModeClick('fixtures')}
+              className={`px-2 py-1 text-xs flex-1 ${
+                viewMode === 'fixtures'
+                  ? "text-blue-400 bg-blue-400/20"
+                  : "text-gray-300"
+              }`}
+            >
+              Fix
+            </Button>
           </div>
 
           {/* Betslip Button */}
@@ -142,42 +247,92 @@ export function MainHeader({ betCount, onToggleBetSlip }: MainHeaderProps) {
         {isMobileMenuOpen && (
           <div className="absolute left-0 right-0 top-full bg-gray-800 border-t border-gray-700 shadow-lg z-40">
             <div className="p-4 space-y-4">
-              {/* Primary Actions */}
+              {/* View Mode Section */}
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Actions</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="ghost" className="text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30 justify-start">
-                    Sportsbook
+                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">View Mode</h3>
+                <div className="space-y-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleViewModeClick('all')}
+                    className={`w-full justify-start ${
+                      viewMode === 'all'
+                        ? "text-yellow-400 bg-yellow-400/20"
+                        : "text-gray-300 hover:text-white hover:bg-gray-700"
+                    }`}
+                  >
+                    <Target className="w-4 h-4 mr-2" />
+                    All Sports (Sportsbook)
                   </Button>
-                  <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-gray-700 justify-start">
-                    Live
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleViewModeClick('live')}
+                    className={`w-full justify-start ${
+                      viewMode === 'live'
+                        ? "text-red-400 bg-red-400/20"
+                        : "text-gray-300 hover:text-white hover:bg-gray-700"
+                    }`}
+                  >
+                    <Radio className="w-4 h-4 mr-2" />
+                    Live Matches
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-auto"></div>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleViewModeClick('fixtures')}
+                    className={`w-full justify-start ${
+                      viewMode === 'fixtures'
+                        ? "text-blue-400 bg-blue-400/20"
+                        : "text-gray-300 hover:text-white hover:bg-gray-700"
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Upcoming Fixtures
                   </Button>
                 </div>
-                <Button variant="ghost" className="text-gray-300 hover:text-white w-full justify-start">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
               </div>
 
-              {/* Sports */}
+              {/* Search Bar */}
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sports</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {sports.map((sport) => (
-                    <Button
-                      key={sport.name}
-                      variant="ghost"
-                      size="sm"
-                      className={
-                        sport.active
-                          ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30 justify-start"
-                          : "text-gray-300 hover:text-white hover:bg-gray-700 justify-start"
-                      }
-                    >
-                      {sport.name}
-                    </Button>
-                  ))}
+                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Search</h3>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search matches..."
+                    className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-full"
+                  />
                 </div>
+              </div>
+
+              {/* Sports - Only show when in 'all' mode */}
+              {viewMode === 'all' && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sports</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {sports.map((sport) => (
+                      <Button
+                        key={sport.name}
+                        variant="ghost"
+                        size="sm"
+                        className={
+                          sport.active
+                            ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30 justify-start"
+                            : "text-gray-300 hover:text-white hover:bg-gray-700 justify-start"
+                        }
+                      >
+                        {sport.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Settings */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Settings</h3>
+                <Button variant="ghost" className="text-gray-300 hover:text-white w-full justify-start">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Preferences
+                </Button>
               </div>
             </div>
           </div>
