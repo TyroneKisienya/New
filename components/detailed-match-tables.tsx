@@ -56,13 +56,12 @@ export function DetailedMatchTables({
   const [expandedSections, setExpandedSections] = useState<string[]>([])
   
   // Use the original hooks as fallback when filtered data is not provided
-  const { matches: originalMatches, loading, error, refetch, isUsingMockData } = useLiveFootballData()
+  const { matches: originalMatches, loading, error, isUsingMockData } = useLiveFootballData()
   const { 
     fixtures: originalFixtures, 
     loading: fixtureLoading, 
     error: fixtureError, 
     selectedDate,
-    refetch: refetchFixtures,
     goToPreviousDate,
     goToNextDate,
     goToToday,
@@ -218,17 +217,6 @@ export function DetailedMatchTables({
             </div>
             <div className="flex items-center space-x-2">
               {loading && <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  refetch()
-                }}
-                className="text-yellow-400 hover:text-yellow-300 text-xs px-2 py-1"
-              >
-                Refresh
-              </Button>
               {isFootballExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
           </div>
@@ -244,14 +232,7 @@ export function DetailedMatchTables({
           <CardContent className="p-8 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
             <p className="text-yellow-400 mb-2">No live matches available</p>
-            <p className="text-gray-500 text-sm mb-4">Check back later for live matches</p>
-            <Button
-              variant="outline"
-              onClick={refetch}
-              className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
-            >
-              Refresh Data
-            </Button>
+            <p className="text-gray-500 text-sm">Check back later for live matches</p>
           </CardContent>
         )}
       </Card>
@@ -282,17 +263,6 @@ export function DetailedMatchTables({
             </div>
             <div className="flex items-center space-x-2">
               {fixtureLoading && <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  refetchFixtures()
-                }}
-                className="text-yellow-400 hover:text-yellow-300 text-xs px-2 py-1"
-              >
-                Refresh
-              </Button>
               {isFixtureExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
           </div>
@@ -364,31 +334,17 @@ export function DetailedMatchTables({
                     <Button
                       variant="outline"
                       onClick={onClearFilters}
-                      className="text-yellow-600 border-yellow-400 hover:bg-yellow-50 mr-2"
+                      className="text-yellow-600 border-yellow-400 hover:bg-yellow-50"
                     >
                       View All Leagues
                     </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    onClick={refetchFixtures}
-                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
-                  >
-                    Refresh Data
-                  </Button>
                 </div>
               ) : (
                 <div className="bg-white p-8 text-center">
                   <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-600 mb-2">No fixtures available for this date</p>
-                  <p className="text-gray-500 text-sm mb-4">Try selecting a different date</p>
-                  <Button
-                    variant="outline"
-                    onClick={refetchFixtures}
-                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
-                  >
-                    Refresh Data
-                  </Button>
+                  <p className="text-gray-500 text-sm">Try selecting a different date</p>
                 </div>
               )
             ) : null}
