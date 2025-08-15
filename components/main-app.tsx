@@ -107,10 +107,21 @@ export function MainApp() {
   const [authView, setAuthView] = useState<'login' | 'register' | 'forgot-password'>('login')
 
   // Get match data from your existing hooks
-  const { matches } = useLiveFootballData()
-  const { fixtures } = useFixtureData()
+  const { matches, loading: liveLoading } = useLiveFootballData()
+  const { fixtures, loading: fixtureLoading } = useFixtureData()
+
+  // Debug: Add console logs to track data loading
+  useEffect(() => {
+    console.log('🔍 Data loading state:', { 
+      liveLoading, 
+      fixtureLoading, 
+      matchesCount: matches?.length || 0, 
+      fixturesCount: fixtures?.length || 0 
+    })
+  }, [liveLoading, fixtureLoading, matches, fixtures])
 
   // Use the updated league filter hook for single selection
+  // Wait for data to load before initializing the filter hook
   const {
     selectedLeague,
     availableLeagues,
@@ -120,7 +131,40 @@ export function MainApp() {
     clearFilters,
     hasActiveFilters,
     filterStats
-  } = useLeagueFilter({ matches, fixtures })
+  } = useLeagueFilter({ 
+    matches: matches || [], 
+    fixtures: fixtures || [] 
+  })
+
+  // Debug: Track filter changes
+  useEffect(() => {
+    console.log('🎯 Filter state changed:', {
+      selectedLeague,
+      filteredMatchesCount: filteredMatches?.length || 0,
+      filteredFixturesCount: filteredFixtures?.length || 0,
+      hasActiveFilters,
+      availableLeaguesCount: availableLeagues?.length || 0
+    })
+  }, [selectedLeague, filteredMatches, filteredFixtures, hasActiveFilters, availableLeagues])
+
+  // Enhanced league selection handler with better state management
+  const handleLeagueSelectionWithLogging = (leagueName: string | null) => {
+    console.log('🏆 League selection:', {
+      previous: selectedLeague,
+      new: leagueName,
+      matchesAvailable: matches?.length || 0,
+      fixturesAvailable: fixtures?.length || 0,
+      dataLoading: liveLoading || fixtureLoading
+    })
+
+    // Don't allow league selection if data is still loading
+    if (liveLoading || fixtureLoading) {
+      console.warn('⚠️ Data still loading, ignoring league selection')
+      return
+    }
+
+    handleLeagueSelection(leagueName)
+  }
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -246,6 +290,7 @@ export function MainApp() {
 
   // New handlers for view mode changes
   const handleViewModeChange = (mode: ViewMode) => {
+    console.log('🔄 View mode changing:', { from: viewMode, to: mode })
     setViewMode(mode)
     // Clear league selection when changing view modes to show all relevant content
     if (mode !== 'all') {
@@ -253,9 +298,27 @@ export function MainApp() {
     }
   }
 
+  // Enhanced clear filters with logging
+  const handleClearFilters = () => {
+    console.log('🧹 Clearing filters')
+    clearFilters()
+  }
+
   // Show reset password page if needed
   if (showResetPassword) {
     return <ResetPasswordPage onComplete={handleResetPasswordComplete} />
+  }
+
+  // Show loading state while data is being fetched
+  if (liveLoading || fixtureLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading sports data...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -275,7 +338,7 @@ export function MainApp() {
       <Sidebar 
         isMobileSidebarOpen={isMobileSidebarOpen}
         setIsMobileSidebarOpen={setIsMobileSidebarOpen}
-        onLeagueSelect={handleLeagueSelection}
+        onLeagueSelect={handleLeagueSelectionWithLogging}
         selectedLeague={selectedLeague}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
@@ -293,14 +356,24 @@ export function MainApp() {
               onAddToBetSlip={addToBetSlip} 
               isBetSlipOpen={isBetSlipOpen}
               selectedLeague={selectedLeague}
-              filteredMatches={filteredMatches}
-              filteredFixtures={filteredFixtures}
-              onClearFilters={clearFilters}
-              onLeagueSelect={handleLeagueSelection}
+              filteredMatches={filteredMatches || []}
+              filteredFixtures={filteredFixtures || []}
+              onClearFilters={handleClearFilters}
+              onLeagueSelect={handleLeagueSelectionWithLogging}
               filterStats={filterStats}
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}
             />
+
+            {/* Debug Information - Remove this in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="fixed bottom-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded text-xs max-w-sm">
+                <div>Selected: {selectedLeague || 'None'}</div>
+                <div>Matches: {filteredMatches?.length || 0}</div>
+                <div>Fixtures: {filteredFixtures?.length || 0}</div>
+                <div>Loading: {liveLoading || fixtureLoading ? 'Yes' : 'No'}</div>
+              </div>
+            )}
 
             {/* Wheel - only visible on mobile */}
             <div className="block lg:hidden px-4 pb-4">

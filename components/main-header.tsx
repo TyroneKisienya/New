@@ -49,30 +49,29 @@ export function MainHeader({
 
   const handleViewModeClick = (mode: ViewMode) => {
     onViewModeChange?.(mode)
-    // Close mobile menu when selecting a view mode
     setIsMobileMenuOpen(false)
   }
 
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
-      {/* Desktop View - Enhanced with view mode buttons */}
+      {/* Desktop View */}
       <div className="hidden lg:flex lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         
-        {/* Left Section: Primary actions and view mode toggles */}
+        {/* Left Section: View mode buttons and sports */}
         <div className="flex flex-wrap items-center gap-2">
           {/* View Mode Toggle Buttons */}
           <div className="flex items-center bg-gray-900 rounded-lg p-1 mr-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleViewModeClick('all')}
+              onClick={() => handleViewModeClick('fixtures')}
               className={`px-3 py-1.5 text-xs transition-all duration-200 ${
-                viewMode === 'all'
-                  ? "text-yellow-400 bg-yellow-400/20 shadow-sm"
+                viewMode === 'fixtures'
+                  ? "text-blue-400 bg-blue-400/20 shadow-sm"
                   : "text-gray-300 hover:text-white hover:bg-gray-700"
               }`}
             >
-              <Target className="w-3 h-3 mr-1" />
+              <Calendar className="w-3 h-3 mr-1" />
               Sportsbook
             </Button>
             <Button
@@ -88,19 +87,6 @@ export function MainHeader({
               <Radio className="w-3 h-3 mr-1" />
               Live
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleViewModeClick('fixtures')}
-              className={`px-3 py-1.5 text-xs transition-all duration-200 ${
-                viewMode === 'fixtures'
-                  ? "text-blue-400 bg-blue-400/20 shadow-sm"
-                  : "text-gray-300 hover:text-white hover:bg-gray-700"
-              }`}
-            >
-              <Calendar className="w-3 h-3 mr-1" />
-              Fixtures
-            </Button>
           </div>
 
           {/* Settings */}
@@ -108,8 +94,8 @@ export function MainHeader({
             <Settings className="w-4 h-4" />
           </Button>
 
-          {/* Sport Buttons - Only show when in 'all' mode */}
-          {viewMode === 'all' && (
+          {/* Sport Buttons - Only show when in fixtures mode */}
+          {viewMode === 'fixtures' && (
             <>
               {sports.map((sport) => (
                 <Button
@@ -129,19 +115,10 @@ export function MainHeader({
           )}
 
           {/* View Mode Status Indicator */}
-          {viewMode !== 'all' && (
+          {viewMode === 'live' && (
             <div className="flex items-center space-x-2 ml-4 px-3 py-1.5 bg-gray-900 rounded-lg border border-gray-600">
-              {viewMode === 'live' ? (
-                <>
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                  <span className="text-red-400 text-xs font-medium">Live Matches Only</span>
-                </>
-              ) : (
-                <>
-                  <Calendar className="w-3 h-3 text-blue-400" />
-                  <span className="text-blue-400 text-xs font-medium">Upcoming Fixtures</span>
-                </>
-              )}
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-red-400 text-xs font-medium">Live Matches Only</span>
             </div>
           )}
         </div>
@@ -162,7 +139,7 @@ export function MainHeader({
             className="text-gray-300 hover:text-white relative bg-gray-700 hover:bg-gray-600"
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
-            Betslip ({betCount})
+            ({betCount})
             {betCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-yellow-500 text-gray-900 text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {betCount}
@@ -191,14 +168,14 @@ export function MainHeader({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleViewModeClick('all')}
+              onClick={() => handleViewModeClick('fixtures')}
               className={`px-2 py-1 text-xs flex-1 ${
-                viewMode === 'all'
-                  ? "text-yellow-400 bg-yellow-400/20"
+                viewMode === 'fixtures'
+                  ? "text-blue-400 bg-blue-400/20"
                   : "text-gray-300"
               }`}
             >
-              All
+              Sportsbook
             </Button>
             <Button
               variant="ghost"
@@ -212,18 +189,6 @@ export function MainHeader({
             >
               <Radio className="w-3 h-3 mr-1" />
               Live
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleViewModeClick('fixtures')}
-              className={`px-2 py-1 text-xs flex-1 ${
-                viewMode === 'fixtures'
-                  ? "text-blue-400 bg-blue-400/20"
-                  : "text-gray-300"
-              }`}
-            >
-              Fix
             </Button>
           </div>
 
@@ -253,15 +218,15 @@ export function MainHeader({
                 <div className="space-y-2">
                   <Button
                     variant="ghost"
-                    onClick={() => handleViewModeClick('all')}
+                    onClick={() => handleViewModeClick('fixtures')}
                     className={`w-full justify-start ${
-                      viewMode === 'all'
-                        ? "text-yellow-400 bg-yellow-400/20"
+                      viewMode === 'fixtures'
+                        ? "text-blue-400 bg-blue-400/20"
                         : "text-gray-300 hover:text-white hover:bg-gray-700"
                     }`}
                   >
-                    <Target className="w-4 h-4 mr-2" />
-                    All Sports (Sportsbook)
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Sportsbook (Fixtures)
                   </Button>
                   <Button
                     variant="ghost"
@@ -275,18 +240,6 @@ export function MainHeader({
                     <Radio className="w-4 h-4 mr-2" />
                     Live Matches
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-auto"></div>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleViewModeClick('fixtures')}
-                    className={`w-full justify-start ${
-                      viewMode === 'fixtures'
-                        ? "text-blue-400 bg-blue-400/20"
-                        : "text-gray-300 hover:text-white hover:bg-gray-700"
-                    }`}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Upcoming Fixtures
                   </Button>
                 </div>
               </div>
@@ -303,8 +256,8 @@ export function MainHeader({
                 </div>
               </div>
 
-              {/* Sports - Only show when in 'all' mode */}
-              {viewMode === 'all' && (
+              {/* Sports - Only show when in sportsbook mode */}
+              {viewMode === 'fixtures' && (
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sports</h3>
                   <div className="grid grid-cols-2 gap-2">

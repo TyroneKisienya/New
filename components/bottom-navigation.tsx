@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Trophy, ShoppingCart, FileText, User, Radio } from "lucide-react"
+import { Home, ShoppingCart, FileText, User } from "lucide-react"
 
 type ViewMode = 'all' | 'live' | 'fixtures'
 
@@ -46,23 +46,6 @@ export function BottomNavigation({
         >
           <Home className="w-5 h-5 transition-colors" />
           <span className="text-xs transition-colors">Sports</span>
-        </button>
-        
-        <button 
-          className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors relative ${
-            viewMode === 'live' 
-              ? 'bg-red-400/20 text-red-400' 
-              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
-          }`}
-          onClick={() => handleClick('live')}
-        >
-          <div className="relative">
-            <Radio className="w-5 h-5 transition-colors" />
-            {viewMode === 'live' && (
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-            )}
-          </div>
-          <span className="text-xs transition-colors">Live</span>
         </button>
         
         <button 
