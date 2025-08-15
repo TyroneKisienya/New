@@ -66,6 +66,14 @@ export function MainContent({
   const topLeaguesRef = useRef<HTMLDivElement>(null)
   const [sectionsExpanded, setSectionsExpanded] = useState(false)
 
+  console.log('🎯 MainContent render:', {
+    viewMode,
+    selectedLeague,
+    filteredMatchesCount: filteredMatches.length,
+    filteredFixturesCount: filteredFixtures.length,
+    filterStats
+  })
+
   // Auto-scroll to matches when a league is selected or view mode changes
   useEffect(() => {
     if ((selectedLeague || viewMode !== 'all') && topLeaguesRef.current) {
@@ -159,29 +167,24 @@ export function MainContent({
             )}
           </>
         ) : (
-          /* Single Collapsed Banner - Show when league is selected */
+          /* Simplified Collapsed Banner */
           <div className="bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 rounded-lg p-4 border border-gray-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Section Icons */}
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <Gift className="text-white w-5 h-5" />
+                {/* Simple text labels instead of heavy components */}
+                <div className="flex items-center space-x-6 text-gray-300">
+                  <div className="flex items-center space-x-2">
+                    <Gift className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm">Promos</span>
                   </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center">
-                    <Star className="text-white w-5 h-5" />
+                  <div className="flex items-center space-x-2">
+                    <Star className="w-4 h-4 text-yellow-400" />
+                    <span className="text-sm">Popular Events</span>
                   </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                    <Trophy className="text-white w-5 h-5" />
+                  <div className="flex items-center space-x-2">
+                    <Trophy className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm">Top Leagues</span>
                   </div>
-                </div>
-                
-                {/* Section Info */}
-                <div>
-                  <h3 className="text-white font-semibold text-lg">Other Sections Available</h3>
-                  <p className="text-gray-300 text-sm">
-                    Promos, Popular Events & Top Leagues
-                  </p>
                 </div>
               </div>
 
@@ -191,40 +194,24 @@ export function MainContent({
                 onClick={handleExpandSections}
                 className="text-gray-300 hover:bg-gray-600 hover:text-white flex items-center space-x-2 px-4 py-2"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>View Other Sections</span>
+                <span>View Sections</span>
                 <ChevronDown className="w-4 h-4" />
               </Button>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="mt-3 pt-3 border-t border-gray-600 flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <div className="flex items-center space-x-1">
-                  <Gift className="w-3 h-3" />
-                  <span>Exclusive Offers</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-3 h-3" />
-                  <span>Trending Events</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Trophy className="w-3 h-3" />
-                  <span>Premium Leagues</span>
-                </div>
-              </div>
-              
-              {selectedLeague && (
+            {/* Currently viewing indicator */}
+            {selectedLeague && (
+              <div className="mt-2 pt-2 border-t border-gray-600 flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-sm">
                   <span className="text-gray-400">Currently viewing:</span>
                   <span className="text-blue-400 font-medium">{selectedLeague}</span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Live Matches Section - Always shown with filtered content */}
+        {/* Match Tables Section - Always shown with proper data passing */}
         <div className="transition-all duration-300 ease-in-out">
           <DetailedMatchTables 
             onAddToBetSlip={onAddToBetSlip} 
@@ -238,6 +225,47 @@ export function MainContent({
             showOnlyFixtures={viewMode === 'fixtures'}
           />
         </div>
+
+        {/* Clear Selection Button - Only visible when league is selected */}
+        {selectedLeague && (
+          <div className="sticky bottom-4 left-0 right-0 flex justify-center">
+            <Button
+              onClick={onClearFilters}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-full px-6 py-3"
+            >
+              <Trophy className="w-4 h-4 mr-2" />
+              View All Leagues
+            </Button>
+          </div>
+        )}
+
+        {/* View Mode Success State - Show when content is available */}
+        {((viewMode === 'live' && filteredMatches.length > 0) || 
+          (viewMode === 'fixtures' && filteredFixtures.length > 0) ||
+          (viewMode === 'all')) && (
+          <div className={`rounded-lg p-3 border ${
+            viewMode === 'live'
+              ? 'bg-red-900/10 border-red-500/20'
+              : viewMode === 'fixtures'
+              ? 'bg-blue-900/10 border-blue-500/20'
+              : 'bg-yellow-900/10 border-yellow-500/20'
+          }`}>
+            <div className="flex items-center justify-center space-x-2 text-sm">
+              <div className={`w-2 h-2 rounded-full animate-pulse ${
+                viewMode === 'live' ? 'bg-red-400' : viewMode === 'fixtures' ? 'bg-blue-400' : 'bg-yellow-400'
+              }`}></div>
+              <span className="text-gray-400">
+                {viewMode === 'live' 
+                  ? 'Live matches are updating in real-time'
+                  : viewMode === 'fixtures'
+                  ? 'Fixture information is updated regularly'
+                  : 'All sports content is displayed'
+                }
+                {selectedLeague && ` • Filtered by ${selectedLeague}`}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* No Content Message */}
         {((viewMode === 'live' && filteredMatches.length === 0) || 
@@ -309,47 +337,6 @@ export function MainContent({
                   View All Sports
                 </Button>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Clear Selection Button - Only visible when league is selected */}
-        {selectedLeague && (
-          <div className="sticky bottom-4 left-0 right-0 flex justify-center">
-            <Button
-              onClick={onClearFilters}
-              className="bg-gray-700 hover:bg-gray-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-full px-6 py-3"
-            >
-              <Trophy className="w-4 h-4 mr-2" />
-              View All Leagues
-            </Button>
-          </div>
-        )}
-
-        {/* View Mode Success State - Show when content is available */}
-        {((viewMode === 'live' && filteredMatches.length > 0) || 
-          (viewMode === 'fixtures' && filteredFixtures.length > 0) ||
-          (viewMode === 'all')) && (
-          <div className={`rounded-lg p-3 border ${
-            viewMode === 'live'
-              ? 'bg-red-900/10 border-red-500/20'
-              : viewMode === 'fixtures'
-              ? 'bg-blue-900/10 border-blue-500/20'
-              : 'bg-yellow-900/10 border-yellow-500/20'
-          }`}>
-            <div className="flex items-center justify-center space-x-2 text-sm">
-              <div className={`w-2 h-2 rounded-full animate-pulse ${
-                viewMode === 'live' ? 'bg-red-400' : viewMode === 'fixtures' ? 'bg-blue-400' : 'bg-yellow-400'
-              }`}></div>
-              <span className="text-gray-400">
-                {viewMode === 'live' 
-                  ? 'Live matches are updating in real-time'
-                  : viewMode === 'fixtures'
-                  ? 'Fixture information is updated regularly'
-                  : 'All sports content is displayed'
-                }
-                {selectedLeague && ` • Filtered by ${selectedLeague}`}
-              </span>
             </div>
           </div>
         )}

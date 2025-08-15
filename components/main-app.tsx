@@ -106,22 +106,12 @@ export function MainApp() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [authView, setAuthView] = useState<'login' | 'register' | 'forgot-password'>('login')
 
-  // Get match data from your existing hooks
+  // Get match data from your existing hooks - but don't block the UI
   const { matches, loading: liveLoading } = useLiveFootballData()
   const { fixtures, loading: fixtureLoading } = useFixtureData()
 
-  // Debug: Add console logs to track data loading
-  useEffect(() => {
-    console.log('🔍 Data loading state:', { 
-      liveLoading, 
-      fixtureLoading, 
-      matchesCount: matches?.length || 0, 
-      fixturesCount: fixtures?.length || 0 
-    })
-  }, [liveLoading, fixtureLoading, matches, fixtures])
-
   // Use the updated league filter hook for single selection
-  // Wait for data to load before initializing the filter hook
+  // Initialize with empty arrays to prevent blocking
   const {
     selectedLeague,
     availableLeagues,
@@ -136,33 +126,16 @@ export function MainApp() {
     fixtures: fixtures || [] 
   })
 
-  // Debug: Track filter changes
-  useEffect(() => {
-    console.log('🎯 Filter state changed:', {
-      selectedLeague,
-      filteredMatchesCount: filteredMatches?.length || 0,
-      filteredFixturesCount: filteredFixtures?.length || 0,
-      hasActiveFilters,
-      availableLeaguesCount: availableLeagues?.length || 0
-    })
-  }, [selectedLeague, filteredMatches, filteredFixtures, hasActiveFilters, availableLeagues])
-
-  // Enhanced league selection handler with better state management
+  // Enhanced league selection handler without loading blocking
   const handleLeagueSelectionWithLogging = (leagueName: string | null) => {
     console.log('🏆 League selection:', {
       previous: selectedLeague,
       new: leagueName,
       matchesAvailable: matches?.length || 0,
-      fixturesAvailable: fixtures?.length || 0,
-      dataLoading: liveLoading || fixtureLoading
+      fixturesAvailable: fixtures?.length || 0
     })
 
-    // Don't allow league selection if data is still loading
-    if (liveLoading || fixtureLoading) {
-      console.warn('⚠️ Data still loading, ignoring league selection')
-      return
-    }
-
+    // Allow league selection even if data is loading
     handleLeagueSelection(leagueName)
   }
 
@@ -309,18 +282,7 @@ export function MainApp() {
     return <ResetPasswordPage onComplete={handleResetPasswordComplete} />
   }
 
-  // Show loading state while data is being fetched
-  if (liveLoading || fixtureLoading) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading sports data...</p>
-        </div>
-      </div>
-    )
-  }
-
+  // Render the app immediately - don't wait for data loading
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Fixed Headers */}
@@ -365,9 +327,19 @@ export function MainApp() {
               onViewModeChange={handleViewModeChange}
             />
 
+            {/* Show loading indicator for data but don't block UI */}
+            {(liveLoading || fixtureLoading) && (
+              <div className="fixed top-20 right-4 bg-gray-800 border border-gray-600 rounded-lg p-3 shadow-lg z-40">
+                <div className="flex items-center space-x-2 text-sm text-gray-300">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400"></div>
+                  <span>Loading sports data...</span>
+                </div>
+              </div>
+            )}
+
             {/* Debug Information - Remove this in production */}
             {process.env.NODE_ENV === 'development' && (
-              <div className="fixed bottom-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded text-xs max-w-sm">
+              <div className="fixed bottom-20 right-4 bg-black bg-opacity-75 text-white p-2 rounded text-xs max-w-sm">
                 <div>Selected: {selectedLeague || 'None'}</div>
                 <div>Matches: {filteredMatches?.length || 0}</div>
                 <div>Fixtures: {filteredFixtures?.length || 0}</div>

@@ -36,6 +36,8 @@ interface FilterStats {
   selectedLeague: string | null
 }
 
+type ViewMode = 'all' | 'live' | 'fixtures'
+
 interface DetailedMatchTablesProps {
   onAddToBetSlip: (bet: any) => void
   selectedLeague?: string | null
@@ -43,6 +45,9 @@ interface DetailedMatchTablesProps {
   filteredFixtures?: Match[]
   onClearFilters?: () => void
   filterStats?: FilterStats
+  viewMode?: ViewMode
+  showOnlyMatches?: boolean
+  showOnlyFixtures?: boolean
 }
 
 export function DetailedMatchTables({ 
@@ -51,11 +56,14 @@ export function DetailedMatchTables({
   filteredMatches = [],
   filteredFixtures = [],
   onClearFilters,
-  filterStats
+  filterStats,
+  viewMode = 'fixtures',
+  showOnlyMatches = false,
+  showOnlyFixtures = false
 }: DetailedMatchTablesProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([])
   
-  // Use the original hooks as fallback when filtered data is not provided
+  // Always use the original hooks to get fresh data
   const { matches: originalMatches, loading, error, isUsingMockData } = useLiveFootballData()
   const { 
     fixtures: originalFixtures, 
@@ -69,44 +77,95 @@ export function DetailedMatchTables({
     canGoToNext
   } = useFixtureData()
 
-  // Use filtered data if provided, otherwise use original data
-  const matches = filteredMatches.length > 0 || selectedLeague ? filteredMatches : originalMatches
-  const fixtures = filteredFixtures.length > 0 || selectedLeague ? filteredFixtures : originalFixtures
+  // Determine which data to use based on props and view mode
+  const matches = useMemo(() => {
+    console.log('🔄 Processing matches data:', {
+      viewMode,
+      selectedLeague,
+      originalMatchesCount: originalMatches?.length || 0,
+      filteredMatchesCount: filteredMatches?.length || 0,
+      showOnlyMatches
+    })
 
-  // Auto-expand sections based on selected league
+    // If we have filtered matches from props and a league is selected, use those
+    if (selectedLeague && filteredMatches.length > 0) {
+      return filteredMatches
+    }
+    
+    // Otherwise use original matches
+    return originalMatches || []
+  }, [originalMatches, filteredMatches, selectedLeague, viewMode])
+
+  const fixtures = useMemo(() => {
+    console.log('🔄 Processing fixtures data:', {
+      viewMode,
+      selectedLeague,
+      originalFixturesCount: originalFixtures?.length || 0,
+      filteredFixturesCount: filteredFixtures?.length || 0,
+      showOnlyFixtures
+    })
+
+    // If we have filtered fixtures from props and a league is selected, use those
+    if (selectedLeague && filteredFixtures.length > 0) {
+      return filteredFixtures
+    }
+    
+    // Otherwise use original fixtures
+    return originalFixtures || []
+  }, [originalFixtures, filteredFixtures, selectedLeague, viewMode])
+
+  // Auto-expand sections based on view mode and data availability
   useEffect(() => {
-    if (selectedLeague) {
-      // When a league is selected, find which sections have matches and auto-expand them
-      const sectionsToExpand: string[] = []
-      
-      // Check if there are live matches for this league
+    console.log('🎯 Auto-expanding sections:', {
+      viewMode,
+      selectedLeague,
+      matchesCount: matches.length,
+      fixturesCount: fixtures.length
+    })
+
+    const sectionsToExpand: string[] = []
+    
+    if (viewMode === 'live' || viewMode === 'all') {
       if (matches.length > 0) {
         sectionsToExpand.push("football")
         
-        // Also expand the specific league sections
+        // Also expand league sections for live matches
         const groupedMatches = groupMatches(matches)
         Object.keys(groupedMatches).forEach(leagueKey => {
           sectionsToExpand.push(leagueKey)
         })
       }
-      
-      // Check if there are fixtures for this league
+    }
+    
+    if (viewMode === 'fixtures' || viewMode === 'all') {
       if (fixtures.length > 0) {
         sectionsToExpand.push("fixtures")
         
-        // Also expand the specific fixture league sections
+        // Also expand league sections for fixtures
         const groupedFixtures = groupMatches(fixtures)
         Object.keys(groupedFixtures).forEach(leagueKey => {
           sectionsToExpand.push(`fixture-${leagueKey}`)
         })
       }
-      
-      setExpandedSections(sectionsToExpand)
-    } else {
-      // When no league is selected, show default expanded sections
-      setExpandedSections(["football", "fixtures"])
     }
-  }, [selectedLeague, matches, fixtures])
+    
+    // If no specific sections to expand but we have data, show the relevant section
+    if (sectionsToExpand.length === 0) {
+      if (viewMode === 'live' && matches.length === 0) {
+        // Still show the football section even if no matches
+        sectionsToExpand.push("football")
+      }
+      if (viewMode === 'fixtures' && fixtures.length === 0) {
+        // Still show the fixtures section even if no fixtures
+        sectionsToExpand.push("fixtures")
+      }
+      if (viewMode === 'all') {
+        sectionsToExpand.push("football", "fixtures")
+      }
+    }
+    
+    setExpandedSections(sectionsToExpand)
+  }, [selectedLeague, matches, fixtures, viewMode])
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
@@ -147,10 +206,16 @@ export function DetailedMatchTables({
   }
 
   // Group matches by league
-  const groupedMatches = useMemo(() => groupMatches(matches), [matches])
+  const groupedMatches = useMemo(() => {
+    console.log('📊 Grouping matches:', { count: matches.length })
+    return groupMatches(matches)
+  }, [matches])
 
   // Group fixtures by league
-  const groupedFixtures = useMemo(() => groupMatches(fixtures), [fixtures])
+  const groupedFixtures = useMemo(() => {
+    console.log('📊 Grouping fixtures:', { count: fixtures.length })
+    return groupMatches(fixtures)
+  }, [fixtures])
 
   // Add a filter status indicator
   const renderFilterStatus = () => {
@@ -187,9 +252,11 @@ export function DetailedMatchTables({
   const renderFootballSection = () => {
     const isFootballExpanded = expandedSections.includes("football")
     const hasMatches = Object.keys(groupedMatches).length > 0
+    
+    // Show section if viewMode includes live matches
+    const shouldShowSection = viewMode === 'live' || viewMode === 'all' || showOnlyMatches
 
-    // Don't render if no matches and a league is selected
-    if (!hasMatches && selectedLeague) return null
+    if (!shouldShowSection) return null
 
     return (
       <Card className="bg-gray-800 border-gray-700">
@@ -222,17 +289,28 @@ export function DetailedMatchTables({
           </div>
         </CardHeader>
 
-        {isFootballExpanded && hasMatches && (
+        {isFootballExpanded && (
           <CardContent className="p-0">
-            {Object.entries(groupedMatches).map(([leagueKey, leagueData]) => renderLeague(leagueKey, leagueData))}
-          </CardContent>
-        )}
-
-        {isFootballExpanded && !hasMatches && !loading && (
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-            <p className="text-yellow-400 mb-2">No live matches available</p>
-            <p className="text-gray-500 text-sm">Check back later for live matches</p>
+            {hasMatches ? (
+              Object.entries(groupedMatches).map(([leagueKey, leagueData]) => renderLeague(leagueKey, leagueData))
+            ) : (
+              <div className="p-8 text-center">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+                <p className="text-yellow-400 mb-2">
+                  {selectedLeague ? `No live matches for ${selectedLeague}` : 'No live matches available'}
+                </p>
+                <p className="text-gray-500 text-sm">Check back later for live matches</p>
+                {selectedLeague && onClearFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={onClearFilters}
+                    className="mt-4 border-yellow-400 text-yellow-400 hover:bg-yellow-400/20"
+                  >
+                    View All Leagues
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         )}
       </Card>
@@ -242,6 +320,11 @@ export function DetailedMatchTables({
   const renderFixtureSection = () => {
     const isFixtureExpanded = expandedSections.includes("fixtures")
     const hasFixtures = Object.keys(groupedFixtures).length > 0
+    
+    // Show section if viewMode includes fixtures
+    const shouldShowSection = viewMode === 'fixtures' || viewMode === 'all' || showOnlyFixtures
+
+    if (!shouldShowSection) return null
 
     return (
       <Card className="bg-gray-800 border-gray-700">
@@ -324,30 +407,32 @@ export function DetailedMatchTables({
               Object.entries(groupedFixtures).map(([leagueKey, leagueData]) => 
                 renderLeague(`fixture-${leagueKey}`, leagueData)
               )
-            ) : !fixtureLoading ? (
-              selectedLeague ? (
-                <div className="bg-white p-8 text-center">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-                  <p className="text-yellow-600 mb-2">No fixtures for {selectedLeague}</p>
-                  <p className="text-gray-500 text-sm mb-4">Try viewing all leagues or select a different date</p>
-                  {onClearFilters && (
-                    <Button
-                      variant="outline"
-                      onClick={onClearFilters}
-                      className="text-yellow-600 border-yellow-400 hover:bg-yellow-50"
-                    >
-                      View All Leagues
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-white p-8 text-center">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-600 mb-2">No fixtures available for this date</p>
-                  <p className="text-gray-500 text-sm">Try selecting a different date</p>
-                </div>
-              )
-            ) : null}
+            ) : (
+              <div className="bg-white p-8 text-center">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 mb-2">
+                  {selectedLeague 
+                    ? `No fixtures for ${selectedLeague} on this date` 
+                    : 'No fixtures available for this date'
+                  }
+                </p>
+                <p className="text-gray-500 text-sm mb-4">
+                  {selectedLeague 
+                    ? 'Try viewing all leagues or select a different date'
+                    : 'Try selecting a different date'
+                  }
+                </p>
+                {selectedLeague && onClearFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={onClearFilters}
+                    className="text-yellow-600 border-yellow-400 hover:bg-yellow-50"
+                  >
+                    View All Leagues
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         )}
       </Card>
@@ -560,7 +645,8 @@ export function DetailedMatchTables({
     )
   }
 
-  if (loading && matches.length === 0 && fixtureLoading && fixtures.length === 0) {
+  // Show loading only when both are loading and we have no data
+  if ((loading || fixtureLoading) && matches.length === 0 && fixtures.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center space-x-2">
@@ -582,8 +668,8 @@ export function DetailedMatchTables({
       {/* Fixture Section */}
       {renderFixtureSection()}
 
-      {/* Other Sports - Only show when no specific league is selected */}
-      {!selectedLeague && (
+      {/* Other Sports - Only show when no specific league is selected and in 'all' mode */}
+      {!selectedLeague && viewMode === 'all' && (
         <div className="space-y-2">
           {["Hockey", "Tennis", "Basketball", "Baseball"].map((sport) => (
             <Card key={sport} className="bg-gray-800 border-gray-700">
@@ -601,6 +687,18 @@ export function DetailedMatchTables({
               </CardHeader>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-20 right-4 bg-black/80 text-white p-3 rounded text-xs max-w-sm z-50">
+          <div>View Mode: {viewMode}</div>
+          <div>Selected League: {selectedLeague || 'None'}</div>
+          <div>Live Matches: {matches.length}</div>
+          <div>Fixtures: {fixtures.length}</div>
+          <div>Live Loading: {loading ? 'Yes' : 'No'}</div>
+          <div>Fixture Loading: {fixtureLoading ? 'Yes' : 'No'}</div>
         </div>
       )}
     </div>
