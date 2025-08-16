@@ -81,8 +81,6 @@ export default function TopHeader({ session: propSession, user: propUser }: TopH
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-2 sm:space-x-4 text-gray-400">
             <span className="hover:text-white cursor-pointer">HOME</span>
-            <span className="hover:text-white cursor-pointer">LIVE</span>
-            <span className="hover:text-white cursor-pointer">LIVE</span>
             <span className="hover:text-white cursor-pointer">CLICK HERE FOR HELP</span>
           </div>
         </div>
@@ -203,8 +201,6 @@ export default function TopHeader({ session: propSession, user: propUser }: TopH
         <div className="lg:hidden absolute top-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-3 z-40">
           <div className="flex flex-col space-y-2 text-gray-400 text-sm">
             <span className="hover:text-white cursor-pointer py-1">HOME</span>
-            <span className="hover:text-white cursor-pointer py-1">LIVE</span>
-            <span className="hover:text-white cursor-pointer py-1">LIVE</span>
             <span className="hover:text-white cursor-pointer py-1">CLICK HERE FOR HELP</span>
             <div className="flex items-center justify-between pt-2 border-t border-gray-700">
               <div className="flex items-center space-x-4">

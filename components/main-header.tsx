@@ -244,18 +244,6 @@ export function MainHeader({
                 </div>
               </div>
 
-              {/* Search Bar */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Search</h3>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search matches..."
-                    className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-full"
-                  />
-                </div>
-              </div>
-
               {/* Sports - Only show when in sportsbook mode */}
               {viewMode === 'fixtures' && (
                 <div className="space-y-2">

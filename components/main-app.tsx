@@ -338,14 +338,14 @@ export function MainApp() {
             )}
 
             {/* Debug Information - Remove this in production */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* {process.env.NODE_ENV === 'development' && (
               <div className="fixed bottom-20 right-4 bg-black bg-opacity-75 text-white p-2 rounded text-xs max-w-sm">
                 <div>Selected: {selectedLeague || 'None'}</div>
                 <div>Matches: {filteredMatches?.length || 0}</div>
                 <div>Fixtures: {filteredFixtures?.length || 0}</div>
                 <div>Loading: {liveLoading || fixtureLoading ? 'Yes' : 'No'}</div>
               </div>
-            )}
+            )} */}
 
             {/* Wheel - only visible on mobile */}
             <div className="block lg:hidden px-4 pb-4">
