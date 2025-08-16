@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // API Response Types
 interface ApiFixture {
@@ -119,6 +119,10 @@ export function useLiveFootballData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  
+  // Use ref to track the last API call timestamp
+  const lastApiCallRef = useRef<number>(0)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Your API configuration
   const API_CONFIG = {
@@ -128,6 +132,9 @@ export function useLiveFootballData() {
       'x-rapidapi-host': 'api-football-v1.p.rapidapi.com'
     }
   }
+
+  // 30 minutes in milliseconds
+  const CACHE_DURATION = 30 * 60 * 1000
 
   const transformApiDataToMatches = useCallback((apiFixtures: ApiFixture[]): Match[] => {
     return apiFixtures.map((fixture) => {
@@ -169,11 +176,24 @@ export function useLiveFootballData() {
     })
   }, [])
 
-  const fetchLiveMatches = useCallback(async () => {
+  const shouldMakeApiCall = useCallback((): boolean => {
+    const now = Date.now()
+    const timeSinceLastCall = now - lastApiCallRef.current
+    return timeSinceLastCall >= CACHE_DURATION
+  }, [CACHE_DURATION])
+
+  const fetchLiveMatches = useCallback(async (forceRefresh: boolean = false) => {
+    // Check if we should make an API call
+    if (!forceRefresh && !shouldMakeApiCall()) {
+      console.log('🕒 Skipping API call - using cached data (within 30-minute limit)')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     try {
+      console.log('🌐 Making API call to fetch live matches')
       const response = await fetch(`${API_CONFIG.url}?live=all`, {
         method: 'GET',
         headers: API_CONFIG.headers
@@ -193,10 +213,15 @@ export function useLiveFootballData() {
       setMatches(transformedMatches)
       setLastUpdated(new Date())
       
+      // Update the last API call timestamp
+      lastApiCallRef.current = Date.now()
+      
+      console.log(`✅ API call successful - next call allowed after ${new Date(lastApiCallRef.current + CACHE_DURATION).toLocaleTimeString()}`)
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
-      console.error('Error fetching live matches:', err)
+      console.error('❌ Error fetching live matches:', err)
       
       // Fallback to mock data on error
       const mockMatches: Match[] = [
@@ -237,21 +262,42 @@ export function useLiveFootballData() {
     } finally {
       setLoading(false)
     }
-  }, [transformApiDataToMatches])
+  }, [transformApiDataToMatches, shouldMakeApiCall, API_CONFIG, CACHE_DURATION])
 
-  // Fetch data on mount
+  // Setup periodic checking (every 30 minutes)
   useEffect(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+
+    // Initial fetch
     fetchLiveMatches()
-  }, [fetchLiveMatches])
 
-  // Auto-refresh every 30 seconds for live matches
-  useEffect(() => {
-    const interval = setInterval(() => {
+    // Set up interval to check every 30 minutes
+    intervalRef.current = setInterval(() => {
       fetchLiveMatches()
-    }, 18000) // 30 minutes
+    }, CACHE_DURATION)
 
-    return () => clearInterval(interval)
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [fetchLiveMatches, CACHE_DURATION])
+
+  // Manual refresh function that respects the cache duration
+  const manualRefresh = useCallback(() => {
+    fetchLiveMatches(true) // Force refresh
   }, [fetchLiveMatches])
+
+  // Get time until next allowed API call
+  const getTimeUntilNextCall = useCallback((): number => {
+    const now = Date.now()
+    const nextAllowedCall = lastApiCallRef.current + CACHE_DURATION
+    return Math.max(0, nextAllowedCall - now)
+  }, [CACHE_DURATION])
 
   return {
     matches,
@@ -259,6 +305,9 @@ export function useLiveFootballData() {
     error,
     lastUpdated,
     refetch: fetchLiveMatches,
-    isUsingMockData: !!error
+    manualRefresh,
+    isUsingMockData: !!error,
+    timeUntilNextCall: getTimeUntilNextCall(),
+    canRefresh: shouldMakeApiCall()
   }
 }

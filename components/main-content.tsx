@@ -66,14 +66,6 @@ export function MainContent({
   const topLeaguesRef = useRef<HTMLDivElement>(null)
   const [sectionsExpanded, setSectionsExpanded] = useState(false)
 
-  console.log('🎯 MainContent render:', {
-    viewMode,
-    selectedLeague,
-    filteredMatchesCount: filteredMatches.length,
-    filteredFixturesCount: filteredFixtures.length,
-    filterStats
-  })
-
   // Auto-scroll to matches when a league is selected or view mode changes
   useEffect(() => {
     if ((selectedLeague || viewMode !== 'all') && topLeaguesRef.current) {

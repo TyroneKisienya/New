@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // API Response Types for Fixtures
 interface FixtureApiFixture {
@@ -105,6 +105,13 @@ interface FixtureMatch {
   }
 }
 
+// Cache interface for storing API responses with timestamps
+interface CacheEntry {
+  data: FixtureMatch[]
+  timestamp: number
+  date: string
+}
+
 // Mock odds generator for fixtures
 const generateFixtureOdds = (homeTeam: string, awayTeam: string, matchId: number) => {
   // Generate consistent odds based on team names and match ID
@@ -129,6 +136,13 @@ export function useFixtureData() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+
+  // Cache management
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map())
+  const lastApiCallRef = useRef<number>(0)
+
+  // 30 minutes in milliseconds
+  const CACHE_DURATION = 30 * 60 * 1000
 
   // API configuration for fixtures
   const FIXTURE_API_CONFIG = {
@@ -183,13 +197,41 @@ export function useFixtureData() {
     return date.toISOString().split('T')[0]
   }
 
-  const fetchFixtures = useCallback(async (date?: Date) => {
+  const shouldMakeApiCall = useCallback((dateString: string): boolean => {
+    const now = Date.now()
+    
+    // Check if we have cached data for this date
+    const cached = cacheRef.current.get(dateString)
+    if (!cached) {
+      return true // No cached data, need to make API call
+    }
+
+    // Check if cached data is still fresh (within 30 minutes)
+    const timeSinceCached = now - cached.timestamp
+    return timeSinceCached >= CACHE_DURATION
+  }, [CACHE_DURATION])
+
+  const fetchFixtures = useCallback(async (date?: Date, forceRefresh: boolean = false) => {
     const targetDate = date || selectedDate
+    const dateString = formatDateForAPI(targetDate)
+    
+    // Check if we should make an API call
+    if (!forceRefresh && !shouldMakeApiCall(dateString)) {
+      console.log(`🕒 Using cached fixtures for ${dateString} (within 30-minute limit)`)
+      const cached = cacheRef.current.get(dateString)
+      if (cached) {
+        setFixtures(cached.data)
+        setLastUpdated(new Date(cached.timestamp))
+        setLoading(false)
+        return
+      }
+    }
+
     setLoading(true)
     setError(null)
 
     try {
-      const dateString = formatDateForAPI(targetDate)
+      console.log(`🌐 Making API call for fixtures on ${dateString}`)
       const response = await fetch(`${FIXTURE_API_CONFIG.url}?date=${dateString}`, {
         method: 'GET',
         headers: FIXTURE_API_CONFIG.headers
@@ -206,18 +248,30 @@ export function useFixtureData() {
       }
 
       const transformedFixtures = transformFixtureData(data.response)
+      
+      // Cache the result
+      const now = Date.now()
+      cacheRef.current.set(dateString, {
+        data: transformedFixtures,
+        timestamp: now,
+        date: dateString
+      })
+
       setFixtures(transformedFixtures)
       setLastUpdated(new Date())
+      lastApiCallRef.current = now
+      
+      console.log(`✅ Fixtures API call successful for ${dateString} - cached until ${new Date(now + CACHE_DURATION).toLocaleTimeString()}`)
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
-      console.error('Error fetching fixtures:', err)
+      console.error('❌ Error fetching fixtures:', err)
       setFixtures([])
     } finally {
       setLoading(false)
     }
-  }, [selectedDate, transformFixtureData])
+  }, [selectedDate, transformFixtureData, shouldMakeApiCall, FIXTURE_API_CONFIG, CACHE_DURATION])
 
   // Date navigation functions
   const goToPreviousDate = useCallback(() => {
@@ -254,10 +308,48 @@ export function useFixtureData() {
   const canGoToPrevious = isDateAllowed(new Date(selectedDate.getTime() - 24 * 60 * 60 * 1000))
   const canGoToNext = isDateAllowed(new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000))
 
+  // Manual refresh function that forces API call
+  const manualRefresh = useCallback(() => {
+    fetchFixtures(selectedDate, true)
+  }, [fetchFixtures, selectedDate])
+
+  // Get cache info for current date
+  const getCacheInfo = useCallback(() => {
+    const dateString = formatDateForAPI(selectedDate)
+    const cached = cacheRef.current.get(dateString)
+    if (!cached) return null
+
+    const now = Date.now()
+    const age = now - cached.timestamp
+    const remainingTime = CACHE_DURATION - age
+
+    return {
+      isCached: true,
+      age,
+      remainingTime: Math.max(0, remainingTime),
+      canRefresh: age >= CACHE_DURATION
+    }
+  }, [selectedDate, CACHE_DURATION])
+
+  // Cleanup old cache entries (keep only last 7 days)
+  const cleanupCache = useCallback(() => {
+    const now = Date.now()
+    const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000)
+
+    cacheRef.current.forEach((entry, key) => {
+      if (entry.timestamp < sevenDaysAgo) {
+        cacheRef.current.delete(key)
+      }
+    })
+  }, [])
+
   // Fetch data on mount and when date changes
   useEffect(() => {
     fetchFixtures()
-  }, [fetchFixtures])
+    
+    // Cleanup old cache entries periodically
+    cleanupCache()
+  }, [fetchFixtures, cleanupCache])
 
   return {
     fixtures,
@@ -266,11 +358,14 @@ export function useFixtureData() {
     lastUpdated,
     selectedDate,
     refetch: fetchFixtures,
+    manualRefresh,
     goToPreviousDate,
     goToNextDate,
     goToToday,
     canGoToPrevious,
     canGoToNext,
-    formatDateForAPI
+    formatDateForAPI,
+    getCacheInfo,
+    cacheSize: cacheRef.current.size
   }
 }
