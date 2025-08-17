@@ -28,10 +28,7 @@ interface LeagueData {
   count: number
   logo: string
   country?: string
-  isLive: boolean
-  hasFixtures: boolean
-  liveCount: number
-  fixtureCount: number
+  hasData: boolean
 }
 
 // Top leagues configuration with their logos
@@ -45,7 +42,7 @@ const TOP_LEAGUES = [
   {
     name: "England Premier League",
     displayName: "Premier League",
-    logo: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/England%20Premier%20League-6grdGDMet2AzcnS6FgzSpIZSBwSR0K.png",
+    logo: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/England%20Premier League-6grdGDMet2AzcnS6FgzSpIZSBwSR0K.png",
     country: "England"
   },
   {
@@ -106,64 +103,36 @@ export function Sidebar({
   const isMobileSidebarOpen = propMobileSidebarOpen ?? internalMobileSidebarOpen
   const setIsMobileSidebarOpen = propSetMobileSidebarOpen ?? setInternalMobileSidebarOpen
 
-  // Process API data to extract unique leagues with counts, separating live and fixtures
+  // Process API data based on view mode - simplified logic
   const allLeaguesData = useMemo(() => {
     const leagueMap = new Map<string, LeagueData>()
+    
+    // Determine which data to use based on view mode
+    const dataToProcess = viewMode === 'live' ? matches : fixtures
 
-    // Process live matches
-    matches.forEach((match: { league: string; leagueLogo: any }) => {
+    dataToProcess.forEach((match: { league: string; leagueLogo: any }) => {
       const leagueKey = match.league.toLowerCase()
       if (leagueMap.has(leagueKey)) {
         const existing = leagueMap.get(leagueKey)!
         leagueMap.set(leagueKey, {
           ...existing,
-          count: existing.count + 1,
-          liveCount: existing.liveCount + 1,
-          isLive: true
+          count: existing.count + 1
         })
       } else {
         leagueMap.set(leagueKey, {
           name: match.league,
           count: 1,
-          liveCount: 1,
-          fixtureCount: 0,
           logo: match.leagueLogo,
           country: extractCountryFromLeague(match.league),
-          isLive: true,
-          hasFixtures: false
-        })
-      }
-    })
-
-    // Process fixtures
-    fixtures.forEach(match => {
-      const leagueKey = match.league.toLowerCase()
-      if (leagueMap.has(leagueKey)) {
-        const existing = leagueMap.get(leagueKey)!
-        leagueMap.set(leagueKey, {
-          ...existing,
-          count: existing.count + 1,
-          fixtureCount: existing.fixtureCount + 1,
-          hasFixtures: true
-        })
-      } else {
-        leagueMap.set(leagueKey, {
-          name: match.league,
-          count: 1,
-          liveCount: 0,
-          fixtureCount: 1,
-          logo: match.leagueLogo,
-          country: extractCountryFromLeague(match.league),
-          isLive: false,
-          hasFixtures: true
+          hasData: true
         })
       }
     })
 
     return Array.from(leagueMap.values()).sort((a, b) => b.count - a.count)
-  }, [matches, fixtures])
+  }, [matches, fixtures, viewMode])
 
-  // Get top leagues with data (always show all data)
+  // Get top leagues with data - simplified to show only relevant matches
   const topLeaguesWithData = useMemo(() => {
     return TOP_LEAGUES.map(topLeague => {
       const matchingLeague = allLeaguesData.find(league => 
@@ -174,11 +143,7 @@ export function Sidebar({
       return {
         ...topLeague,
         count: matchingLeague?.count || 0,
-        isLive: matchingLeague?.isLive || false,
-        hasFixtures: matchingLeague?.hasFixtures || false,
-        hasData: (matchingLeague?.count || 0) > 0,
-        liveCount: matchingLeague?.liveCount || 0,
-        fixtureCount: matchingLeague?.fixtureCount || 0
+        hasData: (matchingLeague?.count || 0) > 0
       }
     }).filter(league => league.hasData)
   }, [allLeaguesData])
@@ -266,23 +231,17 @@ export function Sidebar({
 
   // Enhanced league selection handler
   const handleLeagueClick = (leagueName: string) => {
-    // If clicking the same league, deselect it
     const newSelection = selectedLeague === leagueName ? null : leagueName
-    
     onLeagueSelect?.(newSelection)
     
-    // Close mobile sidebar automatically after selection
     if (isMobileSidebarOpen) {
       setIsMobileSidebarOpen(false)
     }
-
-    // Clear search after selection for better UX
     setSearchQuery("")
   }
 
   // Handle top league click
   const handleTopLeagueClick = (topLeagueName: string) => {
-    // Find the matching league name from actual data
     const matchingLeague = allLeaguesData.find(league => 
       league.name.toLowerCase().includes(topLeagueName.toLowerCase()) ||
       topLeagueName.toLowerCase().includes(league.name.toLowerCase())
@@ -296,11 +255,9 @@ export function Sidebar({
   // View all leagues handler
   const handleViewAll = () => {
     onLeagueSelect?.(null)
-    
     if (isMobileSidebarOpen) {
       setIsMobileSidebarOpen(false)
     }
-    
     setSearchQuery("")
   }
 
@@ -343,10 +300,12 @@ export function Sidebar({
           {/* Header */}
           <div className="flex items-center space-x-2 mb-3">
             <Target className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0" />
-            <span className="text-white font-semibold text-sm sm:text-base truncate">Sports Betting</span>
+            <span className="text-white font-semibold text-sm sm:text-base truncate">
+              {viewMode === 'live' ? 'Live Matches' : 'Sports Betting'}
+            </span>
           </div>
 
-          {/* Status */}
+          {/* Status - Simplified */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-white text-xs sm:text-sm font-medium">Available Leagues</span>
@@ -359,7 +318,7 @@ export function Sidebar({
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-gray-400 text-xs">
-                {totalMatches} events available
+                {totalMatches} {viewMode === 'live' ? 'live matches' : 'fixtures'} available
               </span>
               {isLoading && <Loader2 className="w-3 h-3 animate-spin text-yellow-400" />}
               {hasError && <AlertCircle className="w-3 h-3 text-orange-400" />}
@@ -370,7 +329,7 @@ export function Sidebar({
         </div>
 
         <div className="p-2 sm:p-4 space-y-3 sm:space-y-4">
-          {/* Top Leagues Section - Always expanded by default */}
+          {/* Top Leagues Section */}
           <div>
             <Button
               variant="ghost"
@@ -436,24 +395,14 @@ export function Sidebar({
                         }`}>
                           {league.displayName}
                         </span>
-                        {league.liveCount > 0 && (
+                        {viewMode === 'live' && league.count > 0 && (
                           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
                         )}
                       </div>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className="text-xs text-gray-400">
-                          {league.count} matches
+                          {league.count} {viewMode === 'live' ? 'live' : 'matches'}
                         </span>
-                        {league.liveCount > 0 && (
-                          <span className="text-xs text-red-400 font-medium">
-                            {league.liveCount} LIVE
-                          </span>
-                        )}
-                        {league.fixtureCount > 0 && (
-                          <span className="text-xs text-blue-400">
-                            {league.fixtureCount} Fixtures
-                          </span>
-                        )}
                       </div>
                     </div>
 
@@ -480,7 +429,9 @@ export function Sidebar({
                 {filteredTopLeagues.length === 0 && !searchQuery && (
                   <div className="text-center py-4 text-gray-500">
                     <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-xs sm:text-sm">No matches in top leagues</p>
+                    <p className="text-xs sm:text-sm">
+                      No {viewMode === 'live' ? 'live matches' : 'fixtures'} in top leagues
+                    </p>
                   </div>
                 )}
               </div>
@@ -546,24 +497,14 @@ export function Sidebar({
                                 }`}>
                                   {league.name}
                                 </span>
-                                {league.liveCount > 0 && (
+                                {viewMode === 'live' && league.count > 0 && (
                                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
                                 )}
                               </div>
                               <div className="flex items-center space-x-2 mt-1">
                                 <span className="text-xs text-gray-500">
-                                  {league.count} matches
+                                  {league.count} {viewMode === 'live' ? 'live' : 'matches'}
                                 </span>
-                                {league.liveCount > 0 && (
-                                  <span className="text-xs text-red-400 font-medium">
-                                    {league.liveCount} LIVE
-                                  </span>
-                                )}
-                                {league.fixtureCount > 0 && (
-                                  <span className="text-xs text-blue-400">
-                                    {league.fixtureCount} Fixtures
-                                  </span>
-                                )}
                               </div>
                             </div>
 
@@ -575,13 +516,6 @@ export function Sidebar({
                       </div>
                     </div>
                   ))}
-
-                  {Object.keys(filteredGroupedLeagues).length === 0 && !searchQuery && (
-                    <div className="text-center py-4 text-gray-500">
-                      <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs sm:text-sm">No matches in other leagues</p>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -642,7 +576,7 @@ export function Sidebar({
         </div>
       </div>
     )
-  }, [searchQuery, expandedSections, selectedLeague, allLeaguesData, filteredTopLeagues, filteredGroupedLeagues, topLeaguesWithData, remainingLeagues, totalMatches, isLoading, hasError, handleLeagueClick, handleTopLeagueClick, handleViewAll])
+  }, [searchQuery, expandedSections, selectedLeague, allLeaguesData, filteredTopLeagues, filteredGroupedLeagues, topLeaguesWithData, remainingLeagues, totalMatches, isLoading, hasError, handleLeagueClick, handleTopLeagueClick, handleViewAll, viewMode])
 
   return (
     <>

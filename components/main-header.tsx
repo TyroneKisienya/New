@@ -2,8 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, ShoppingCart, Settings, Menu, X, Radio, Calendar, Target } from "lucide-react"
+import { ShoppingCart, Settings, Menu, X, Radio, Calendar } from "lucide-react"
 
 type ViewMode = 'all' | 'live' | 'fixtures'
 
@@ -94,25 +93,21 @@ export function MainHeader({
             <Settings className="w-4 h-4" />
           </Button>
 
-          {/* Sport Buttons - Only show when in fixtures mode */}
-          {viewMode === 'fixtures' && (
-            <>
-              {sports.map((sport) => (
-                <Button
-                  key={sport.name}
-                  variant="ghost"
-                  size="sm"
-                  className={
-                    sport.active
-                      ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30"
-                      : "text-gray-300 hover:text-white hover:bg-gray-700"
-                  }
-                >
-                  {sport.name}
-                </Button>
-              ))}
-            </>
-          )}
+          {/* Sport Buttons - Now always visible */}
+          {sports.map((sport) => (
+            <Button
+              key={sport.name}
+              variant="ghost"
+              size="sm"
+              className={
+                sport.active
+                  ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30"
+                  : "text-gray-300 hover:text-white hover:bg-gray-700"
+              }
+            >
+              {sport.name}
+            </Button>
+          ))}
 
           {/* View Mode Status Indicator */}
           {viewMode === 'live' && (
@@ -123,23 +118,15 @@ export function MainHeader({
           )}
         </div>
 
-        {/* Right Section: Search + Betslip */}
-        <div className="flex items-center gap-4">
-          <div className="relative w-60">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search"
-              className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-full"
-            />
-          </div>
-
+        {/* Right Section: Betslip only */}
+        <div className="flex items-center">
           <Button
             variant="ghost"
             onClick={onToggleBetSlip}
             className="text-gray-300 hover:text-white relative bg-gray-700 hover:bg-gray-600"
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
-            ({betCount})
+             Betslip ({betCount})
             {betCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-yellow-500 text-gray-900 text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {betCount}
@@ -244,28 +231,26 @@ export function MainHeader({
                 </div>
               </div>
 
-              {/* Sports - Only show when in sportsbook mode */}
-              {viewMode === 'fixtures' && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sports</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {sports.map((sport) => (
-                      <Button
-                        key={sport.name}
-                        variant="ghost"
-                        size="sm"
-                        className={
-                          sport.active
-                            ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30 justify-start"
-                            : "text-gray-300 hover:text-white hover:bg-gray-700 justify-start"
-                        }
-                      >
-                        {sport.name}
-                      </Button>
-                    ))}
-                  </div>
+              {/* Sports - Now always visible in mobile too */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Sports</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {sports.map((sport) => (
+                    <Button
+                      key={sport.name}
+                      variant="ghost"
+                      size="sm"
+                      className={
+                        sport.active
+                          ? "text-yellow-400 bg-yellow-400/20 hover:bg-yellow-400/30 justify-start"
+                          : "text-gray-300 hover:text-white hover:bg-gray-700 justify-start"
+                      }
+                    >
+                      {sport.name}
+                    </Button>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {/* Settings */}
               <div className="space-y-2">

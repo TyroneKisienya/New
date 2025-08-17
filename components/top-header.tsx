@@ -9,9 +9,10 @@ import ForgotPasswordPage from './auth/ForgotPasswordPage'
 interface TopHeaderProps {
   session?: Session | null
   user?: User | null
+  onLogoClick?: () => void // Add this prop for the home reset functionality
 }
 
-export default function TopHeader({ session: propSession, user: propUser }: TopHeaderProps) {
+export default function TopHeader({ session: propSession, user: propUser, onLogoClick }: TopHeaderProps) {
   const [activeForm, setActiveForm] = useState<"login" | "register" | "forgot-password" | null>(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -66,12 +67,30 @@ export default function TopHeader({ session: propSession, user: propUser }: TopH
   const switchToLogin = () => setActiveForm("login")
   const switchToForgotPassword = () => setActiveForm("forgot-password")
 
+  // Handle logo click to reset to home state
+  const handleLogoClick = () => {
+    if (onLogoClick) {
+      onLogoClick()
+    }
+  }
+
   return (
     <div className="relative bg-gray-800 border-b border-gray-700 px-2 sm:px-4 py-2">
       <div className="flex items-center justify-between text-xs sm:text-sm">
-        {/* Left side - Logo */}
+        {/* Left side - Logo - Now clickable */}
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <div className="flex items-center space-x-2">
+          <div 
+            className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleLogoClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleLogoClick()
+              }
+            }}
+            title="Return to home"
+          >
             <div className="w-6 h-6 sm:w-6 sm:h-6 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded flex items-center justify-center">
               <span className="text-gray-900 font-bold text-sm">P</span>
             </div>
@@ -80,7 +99,12 @@ export default function TopHeader({ session: propSession, user: propUser }: TopH
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-2 sm:space-x-4 text-gray-400">
-            <span className="hover:text-white cursor-pointer">HOME</span>
+            <span 
+              className="hover:text-white cursor-pointer"
+              onClick={handleLogoClick}
+            >
+              HOME
+            </span>
             <span className="hover:text-white cursor-pointer">CLICK HERE FOR HELP</span>
           </div>
         </div>
@@ -200,7 +224,12 @@ export default function TopHeader({ session: propSession, user: propUser }: TopH
       {showMobileMenu && (
         <div className="lg:hidden absolute top-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-3 z-40">
           <div className="flex flex-col space-y-2 text-gray-400 text-sm">
-            <span className="hover:text-white cursor-pointer py-1">HOME</span>
+            <span 
+              className="hover:text-white cursor-pointer py-1"
+              onClick={handleLogoClick}
+            >
+              HOME
+            </span>
             <span className="hover:text-white cursor-pointer py-1">CLICK HERE FOR HELP</span>
             <div className="flex items-center justify-between pt-2 border-t border-gray-700">
               <div className="flex items-center space-x-4">

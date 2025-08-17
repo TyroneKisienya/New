@@ -277,6 +277,19 @@ export function MainApp() {
     clearFilters()
   }
 
+  // Handle logo click to reset to home state
+  const handleLogoClick = () => {
+    console.log('🏠 Logo clicked - Resetting to home state')
+    // Clear all filters and selections
+    clearFilters()
+    // Reset view mode to fixtures (default)
+    setViewMode('fixtures')
+    // Close mobile sidebar if open
+    setIsMobileSidebarOpen(false)
+    // Close bet slip if open
+    setIsBetSlipOpen(false)
+  }
+
   // Show reset password page if needed
   if (showResetPassword) {
     return <ResetPasswordPage onComplete={handleResetPasswordComplete} />
@@ -287,7 +300,11 @@ export function MainApp() {
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Fixed Headers */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-lg">
-        <TopHeader session={session} user={user} />
+        <TopHeader 
+          session={session} 
+          user={user} 
+          onLogoClick={handleLogoClick}
+        />
         <MainHeader 
           betCount={selectedBets.length} 
           onToggleBetSlip={() => setIsBetSlipOpen(!isBetSlipOpen)}
