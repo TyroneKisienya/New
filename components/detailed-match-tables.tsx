@@ -48,6 +48,7 @@ interface DetailedMatchTablesProps {
   viewMode?: ViewMode
   showOnlyMatches?: boolean
   showOnlyFixtures?: boolean
+  selectedBets?: any[]
 }
 
 export function DetailedMatchTables({ 
@@ -59,7 +60,8 @@ export function DetailedMatchTables({
   filterStats,
   viewMode = 'fixtures',
   showOnlyMatches = false,
-  showOnlyFixtures = false
+  showOnlyFixtures = false,
+  selectedBets = []
 }: DetailedMatchTablesProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([])
   
@@ -77,9 +79,15 @@ export function DetailedMatchTables({
     canGoToNext
   } = useFixtureData()
 
+  // Helper function to check if a bet is selected - FIXED
+  const isBetSelected = (betId: string) => {
+    console.log('🎯 Checking bet selection:', { betId, selectedBets: selectedBets.map(b => b.id) })
+    return selectedBets.some(bet => bet.id === betId)
+  }
+
   // Determine which data to use based on props and view mode
   const matches = useMemo(() => {
-    console.log('🔄 Processing matches data:', {
+    console.log('📊 Processing matches data:', {
       viewMode,
       selectedLeague,
       originalMatchesCount: originalMatches?.length || 0,
@@ -97,7 +105,7 @@ export function DetailedMatchTables({
   }, [originalMatches, filteredMatches, selectedLeague, viewMode])
 
   const fixtures = useMemo(() => {
-    console.log('🔄 Processing fixtures data:', {
+    console.log('📊 Processing fixtures data:', {
       viewMode,
       selectedLeague,
       originalFixturesCount: originalFixtures?.length || 0,
@@ -198,7 +206,7 @@ export function DetailedMatchTables({
         awayScore: match.awayScore,
         venue: match.venue,
         referee: match.referee,
-        odds: match.odds,
+        odds: match.odds, // Use the actual odds from the match data
         additionalBets: Math.floor(Math.random() * 50) + 10 // Mock additional bets count
       })
       return groups
@@ -247,6 +255,61 @@ export function DetailedMatchTables({
         </div>
       </div>
     )
+  }
+
+  // ENHANCED BET CREATION FUNCTION
+  const createBetData = (match: any, betType: 'home' | 'draw' | 'away') => {
+    // Ensure we have valid odds
+    if (!match.odds) {
+      console.warn('⚠️ No odds available for match:', match.id)
+      return null
+    }
+
+    const oddsMap = {
+      home: match.odds.home,
+      draw: match.odds.draw,
+      away: match.odds.away
+    }
+
+    const selectionMap = {
+      home: match.homeTeam.name,
+      draw: "Draw",
+      away: match.awayTeam.name
+    }
+
+    const betData = {
+      id: `${match.id}-${betType}`,
+      matchId: match.id,
+      homeTeam: match.homeTeam.name,
+      awayTeam: match.awayTeam.name,
+      // ADD TEAM LOGOS HERE
+      homeTeamLogo: match.homeTeam.logo,
+      awayTeamLogo: match.awayTeam.logo,
+      selection: selectionMap[betType],
+      eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+      match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+      betType: betType,
+      bet: selectionMap[betType],
+      // ENSURE CORRECT ODDS ARE PASSED
+      odds: Number(oddsMap[betType].toFixed(2)),
+      league: match.league || 'Unknown League',
+      // Additional match info that might be useful
+      venue: match.venue,
+      time: match.time,
+      status: match.status
+    }
+
+    console.log('🎲 Creating bet data:', {
+      betId: betData.id,
+      betType,
+      odds: betData.odds,
+      selection: betData.selection,
+      homeTeam: betData.homeTeam,
+      awayTeam: betData.awayTeam,
+      hasLogos: !!(betData.homeTeamLogo && betData.awayTeamLogo)
+    })
+
+    return betData
   }
 
   const renderFootballSection = () => {
@@ -467,6 +530,7 @@ export function DetailedMatchTables({
               <span className="text-xs opacity-75">({leagueData.matches.length} matches)</span>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Move 1X2 headers to league header */}
               <div className="flex items-center space-x-4 text-sm font-medium">
                 <span>1</span>
                 <span>X</span>
@@ -543,77 +607,76 @@ export function DetailedMatchTables({
                   <span className="text-gray-600 text-sm font-medium">+{match.additionalBets}</span>
                 </div>
 
-                {/* Betting Odds */}
+                {/* Betting Odds - ENHANCED VERSION */}
                 {match.odds && match.status !== "FINISHED" && (
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
-                      onClick={() =>
-                        onAddToBetSlip({
-                          id: `${match.id}-home`,
-                          matchId: match.id,
-                          homeTeam: match.homeTeam.name,
-                          awayTeam: match.awayTeam.name,
-                          selection: match.homeTeam.name,
-                          eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                          match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                          betType: 'home',
-                          bet: match.homeTeam.name,
-                          odds: Number.parseFloat(match.odds.home.toFixed(2)),
-                          league: leagueData.name,
-                        })
-                      }
-                    >
-                      {match.odds.home.toFixed(2)}
-                    </Button>
+                  <div className="flex flex-col items-center space-y-1">
+                    {/* Display current odds above buttons for verification */}
+                    <div className="text-xs text-gray-500 mb-1">
+                      H:{match.odds.home} D:{match.odds.draw} A:{match.odds.away}
+                    </div>
+                    
+                    {/* Betting Odds Buttons */}
+                    <div className="flex items-center space-x-2">
+                      {/* Home Bet */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`px-3 py-1 text-sm font-medium min-w-12 h-8 transition-all ${
+                          isBetSelected(`${match.id}-home`)
+                            ? "bg-yellow-500 border-yellow-500 text-white hover:bg-yellow-600 hover:border-yellow-600"
+                            : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          const betData = createBetData(match, 'home')
+                          if (betData) {
+                            console.log('🏠 Home bet clicked:', betData)
+                            onAddToBetSlip(betData)
+                          }
+                        }}
+                      >
+                        {match.odds.home.toFixed(2)}
+                      </Button>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
-                      onClick={() =>
-                        onAddToBetSlip({
-                          id: `${match.id}-draw`,
-                          matchId: match.id,
-                          homeTeam: match.homeTeam.name,
-                          awayTeam: match.awayTeam.name,
-                          selection: "Draw",
-                          eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                          match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                          betType: 'draw',
-                          bet: "Draw",
-                          odds: Number.parseFloat(match.odds.draw.toFixed(2)),
-                          league: leagueData.name,
-                        })
-                      }
-                    >
-                      {match.odds.draw.toFixed(2)}
-                    </Button>
+                      {/* Draw Bet */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`px-3 py-1 text-sm font-medium min-w-12 h-8 transition-all ${
+                          isBetSelected(`${match.id}-draw`)
+                            ? "bg-yellow-500 border-yellow-500 text-white hover:bg-yellow-600 hover:border-yellow-600"
+                            : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          const betData = createBetData(match, 'draw')
+                          if (betData) {
+                            console.log('🤝 Draw bet clicked:', betData)
+                            onAddToBetSlip(betData)
+                          }
+                        }}
+                      >
+                        {match.odds.draw.toFixed(2)}
+                      </Button>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300 px-3 py-1 text-sm font-medium min-w-12 h-8"
-                      onClick={() =>
-                        onAddToBetSlip({
-                          id: `${match.id}-away`,
-                          matchId: match.id,
-                          homeTeam: match.homeTeam.name,
-                          awayTeam: match.awayTeam.name,
-                          selection: match.awayTeam.name,
-                          eventName: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                          match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                          betType: 'away',
-                          bet: match.awayTeam.name,
-                          odds: Number.parseFloat(match.odds.away.toFixed(2)),
-                          league: leagueData.name,
-                        })
-                      }
-                    >
-                      {match.odds.away.toFixed(2)}
-                    </Button>
+                      {/* Away Bet */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`px-3 py-1 text-sm font-medium min-w-12 h-8 transition-all ${
+                          isBetSelected(`${match.id}-away`)
+                            ? "bg-yellow-500 border-yellow-500 text-white hover:bg-yellow-600 hover:border-yellow-600"
+                            : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-blue-100 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          const betData = createBetData(match, 'away')
+                          if (betData) {
+                            console.log('✈️ Away bet clicked:', betData)
+                            onAddToBetSlip(betData)
+                          }
+                        }}
+                      >
+                        {match.odds.away.toFixed(2)}
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -699,6 +762,7 @@ export function DetailedMatchTables({
           <div>Fixtures: {fixtures.length}</div>
           <div>Live Loading: {loading ? 'Yes' : 'No'}</div>
           <div>Fixture Loading: {fixtureLoading ? 'Yes' : 'No'}</div>
+          <div>Selected Bets: {selectedBets.length}</div>
         </div>
       )}
     </div>

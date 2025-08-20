@@ -1,3 +1,5 @@
+// Fixed bet-slip.tsx
+
 "use client"
 
 import { useState, useRef, useEffect } from "react"
@@ -154,37 +156,115 @@ export function BetSlip({
                     <div className="space-y-3">
                       <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0">
+                          {/* Event Name */}
                           <div className="text-white text-sm font-medium mb-2 truncate">
-                            {bet.eventName || "Football Austin The Waco Cup"}
+                            {bet.eventName || "Football Match"}
                           </div>
+                          
+                          {/* Match Info with League */}
+                          <div className="text-xs text-gray-400 mb-2">
+                            {bet.league && `${bet.league} • `}
+                            {bet.venue && `${bet.venue} • `}
+                            {bet.time}
+                          </div>
+
+                          {/* Home Team - Enhanced with Logo */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-2 flex-1 min-w-0">
-                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-xs">👕</span>
-                              </div>
+                              {/* Use actual team logo if available */}
+                              {bet.homeTeamLogo ? (
+                                <img
+                                  src={bet.homeTeamLogo}
+                                  alt={bet.homeTeam}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                  onError={(e) => {
+                                    // Fallback to generic team icon
+                                    e.currentTarget.src = "/placeholder.svg?height=24&width=24&text=H"
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white text-xs font-bold">H</span>
+                                </div>
+                              )}
                               <span className="text-gray-300 text-sm truncate">
-                                {bet.homeTeam || "Enumclaw United"}
+                                {bet.homeTeam || "Home Team"}
                               </span>
                             </div>
-                            <div className="text-yellow-400 font-bold text-lg ml-2">
-                              {bet.odds || "2.44"}
-                            </div>
+                            {/* Display odds only for the selected bet type */}
+                            {bet.betType === 'home' && (
+                              <div className="text-yellow-400 font-bold text-lg ml-2">
+                                {bet.odds || "2.44"}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center space-x-2 mb-3">
-                            <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-xs">👕</span>
+
+                          {/* Away Team - Enhanced with Logo */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              {/* Use actual team logo if available */}
+                              {bet.awayTeamLogo ? (
+                                <img
+                                  src={bet.awayTeamLogo}
+                                  alt={bet.awayTeam}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                  onError={(e) => {
+                                    // Fallback to generic team icon
+                                    e.currentTarget.src = "/placeholder.svg?height=24&width=24&text=A"
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white text-xs font-bold">A</span>
+                                </div>
+                              )}
+                              <span className="text-gray-300 text-sm truncate">
+                                {bet.awayTeam || "Away Team"}
+                              </span>
                             </div>
-                            <span className="text-gray-300 text-sm truncate">
-                              {bet.awayTeam || "Black Diamond FC"}
-                            </span>
+                            {/* Display odds only for the selected bet type */}
+                            {bet.betType === 'away' && (
+                              <div className="text-yellow-400 font-bold text-lg ml-2">
+                                {bet.odds || "2.44"}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-white text-sm">
+
+                          {/* Draw odds - only show for draw bets */}
+                          {bet.betType === 'draw' && (
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white text-xs font-bold">X</span>
+                                </div>
+                                <span className="text-gray-300 text-sm truncate">
+                                  Draw
+                                </span>
+                              </div>
+                              <div className="text-yellow-400 font-bold text-lg ml-2">
+                                {bet.odds || "2.44"}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Selection Info - Enhanced */}
+                          <div className="text-white text-sm bg-gray-600 rounded px-2 py-1">
                             <span className="text-gray-400">Selection: </span>
-                            <span className="font-medium">
-                              {bet.selection || "Enumclaw United"}
+                            <span className="font-medium text-yellow-400">
+                              {bet.selection || bet.bet}
                             </span>
+                            <span className="text-gray-400 ml-2">@{bet.odds}</span>
                           </div>
+
+                          {/* Additional bet info */}
+                          {bet.status && bet.status !== 'scheduled' && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              Status: {bet.status.toUpperCase()}
+                            </div>
+                          )}
                         </div>
+
+                        {/* Remove Button */}
                         <Button
                           variant="ghost"
                           size="icon"

@@ -49,6 +49,8 @@ interface MainContentProps {
   filterStats?: FilterStats
   viewMode?: ViewMode
   onViewModeChange?: (mode: ViewMode) => void
+  // Add selectedBets prop
+  selectedBets?: any[]
 }
 
 export function MainContent({ 
@@ -61,7 +63,8 @@ export function MainContent({
   onLeagueSelect,
   filterStats,
   viewMode = 'fixtures',
-  onViewModeChange
+  onViewModeChange,
+  selectedBets = []
 }: MainContentProps) {
   const topLeaguesRef = useRef<HTMLDivElement>(null)
   const [sectionsExpanded, setSectionsExpanded] = useState(false)
@@ -162,7 +165,7 @@ export function MainContent({
           </div>
         )}
 
-        {/* Match Tables */}
+        {/* Match Tables - Pass selectedBets */}
         <DetailedMatchTables 
           onAddToBetSlip={onAddToBetSlip} 
           selectedLeague={selectedLeague}
@@ -173,6 +176,7 @@ export function MainContent({
           viewMode={viewMode}
           showOnlyMatches={viewMode === 'live'}
           showOnlyFixtures={viewMode === 'fixtures'}
+          selectedBets={selectedBets}
         />
 
         {/* Clear Selection Button */}

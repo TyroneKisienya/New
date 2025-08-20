@@ -263,7 +263,7 @@ export function MainApp() {
 
   // New handlers for view mode changes
   const handleViewModeChange = (mode: ViewMode) => {
-    console.log('🔄 View mode changing:', { from: viewMode, to: mode })
+    console.log('📄 View mode changing:', { from: viewMode, to: mode })
     setViewMode(mode)
     // Clear league selection when changing view modes to show all relevant content
     if (mode !== 'all') {
@@ -342,6 +342,7 @@ export function MainApp() {
               filterStats={filterStats}
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}
+              selectedBets={selectedBets}
             />
 
             {/* Show loading indicator for data but don't block UI */}
