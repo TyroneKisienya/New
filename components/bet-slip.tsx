@@ -1,4 +1,4 @@
-// Fixed bet-slip.tsx
+// Updated bet-slip.tsx with fixed odds calculation
 
 "use client"
 
@@ -51,6 +51,55 @@ export function BetSlip({
     setStake((prev) => Math.max(0, prev + (increment ? 10 : -10)))
   }
 
+  // FIXED ODDS CALCULATION BASED ON BET TYPE
+  const calculateTotalOdds = () => {
+    if (bets.length === 0) return 0
+
+    switch (activeTab) {
+      case "Express": 
+        // Accumulator: multiply all odds together
+        return bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
+      
+      case "System":
+        // System bet: average of all combinations (simplified)
+        const totalOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
+        return totalOdds / bets.length // Simplified system calculation
+      
+      case "Ordinary":
+      default:
+        // Ordinary: sum of all odds (each bet uses full stake)
+        return bets.reduce((acc, bet) => acc + (bet.odds || 2.44), 0)
+    }
+  }
+
+  // FIXED PROFIT CALCULATION
+  const calculatePossibleProfit = () => {
+    if (bets.length === 0) return 0
+
+    switch (activeTab) {
+      case "Express":
+        // Accumulator: stake * total odds - stake
+        const totalOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
+        return (stake * totalOdds) - stake
+      
+      case "System":
+        // System bet: simplified calculation
+        const systemOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
+        const systemReturn = (stake * systemOdds) / bets.length
+        return systemReturn - stake
+      
+      case "Ordinary":
+      default:
+        // Ordinary: single stake applied to sum of all odds
+        const combinedOdds = bets.reduce((acc, bet) => acc + (bet.odds || 2.44), 0)
+        return (stake * combinedOdds) - stake
+    }
+  }
+
+  const totalOdds = calculateTotalOdds()
+  const possibleProfit = calculatePossibleProfit()
+  const totalReturn = possibleProfit + stake
+
   const handlePlaceBet = async () => {
     console.log('handlePlaceBet called', { isAuthenticated, onLogin, onPlaceBet })
     
@@ -69,14 +118,14 @@ export function BetSlip({
     console.log('User authenticated, proceeding with bet placement')
     setIsPlacingBet(true)
 
-    const totalOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
     const betData = {
       bets,
       stake,
       autoAcceptChanges,
       betType: activeTab,
       totalOdds,
-      possibleProfit: stake * totalOdds
+      possibleProfit,
+      totalReturn
     }
 
     try {
@@ -95,9 +144,6 @@ export function BetSlip({
   const clearAllBets = () => {
     bets.forEach(bet => onRemoveBet(bet.id))
   }
-
-  const totalOdds = bets.reduce((acc, bet) => acc * (bet.odds || 2.44), 1)
-  const possibleProfit = stake * totalOdds
 
   return (
     <div
@@ -144,6 +190,15 @@ export function BetSlip({
               {tab}
             </Button>
           ))}
+        </div>
+
+        {/* Tab Description */}
+        <div className="px-4 pb-2">
+          <p className="text-xs text-gray-400">
+            {activeTab === "Ordinary" && "Odds are added together, single stake applied"}
+            {activeTab === "Express" && "All selections must win (odds multiplied together)"}
+            {activeTab === "System" && "Various combinations of your selections"}
+          </p>
         </div>
 
         {/* Content */}
@@ -256,6 +311,13 @@ export function BetSlip({
                             <span className="text-gray-400 ml-2">@{bet.odds}</span>
                           </div>
 
+                          {/* Show individual bet calculation for Ordinary bets */}
+                          {activeTab === "Ordinary" && (
+                            <div className="text-xs text-gray-400 mt-2 bg-gray-800 rounded px-2 py-1">
+                              Odds: {bet.odds} (part of combined {totalOdds.toFixed(2)})
+                            </div>
+                          )}
+
                           {/* Additional bet info */}
                           {bet.status && bet.status !== 'scheduled' && (
                             <div className="text-xs text-gray-400 mt-1">
@@ -303,9 +365,12 @@ export function BetSlip({
                   </Button>
                 </div>
 
+                {/* ENHANCED BETTING SUMMARY */}
                 <div className="bg-gray-800 p-3 rounded space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Total Odds:</span>
+                    <span className="text-gray-400">
+                      {activeTab === "Ordinary" ? "Combined Odds:" : activeTab === "Express" ? "Multiplied Odds:" : "Total Odds:"}
+                    </span>
                     <span className="text-white font-medium">{totalOdds.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -315,6 +380,10 @@ export function BetSlip({
                   <div className="flex justify-between border-t border-gray-600 pt-2">
                     <span className="text-white font-medium">Possible Profit:</span>
                     <span className="text-green-400 font-bold">${possibleProfit.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Total Return:</span>
+                    <span className="text-green-300 font-medium">${totalReturn.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -352,7 +421,7 @@ export function BetSlip({
                     ) : (
                       <div className="flex items-center space-x-2">
                         <Check className="w-4 h-4" />
-                        <span>Place Bet (${stake})</span>
+                        <span>Place {activeTab} Bet (${stake})</span>
                       </div>
                     )}
                   </Button>
