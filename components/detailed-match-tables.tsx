@@ -225,38 +225,6 @@ export function DetailedMatchTables({
     return groupMatches(fixtures)
   }, [fixtures])
 
-  // Add a filter status indicator
-  const renderFilterStatus = () => {
-    if (!selectedLeague) return null
-
-    return (
-      <div className="mb-4 bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-yellow-400 text-sm font-medium">
-              Viewing: {selectedLeague}
-            </span>
-            {filterStats && (
-              <div className="text-xs text-yellow-300 mt-1">
-                {filterStats.filteredMatches}/{filterStats.totalMatches} matches • {filterStats.filteredFixtures}/{filterStats.totalFixtures} fixtures
-              </div>
-            )}
-          </div>
-          {onClearFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearFilters}
-              className="text-yellow-400 hover:text-yellow-300"
-            >
-              View All
-            </Button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
   // ENHANCED BET CREATION FUNCTION
   const createBetData = (match: any, betType: 'home' | 'draw' | 'away') => {
     // Ensure we have valid odds
@@ -530,12 +498,6 @@ export function DetailedMatchTables({
               <span className="text-xs opacity-75">({leagueData.matches.length} matches)</span>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Move 1X2 headers to league header */}
-              <div className="flex items-center space-x-4 text-sm font-medium">
-                <span>1</span>
-                <span>X</span>
-                <span>2</span>
-              </div>
               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
           </div>
@@ -610,9 +572,11 @@ export function DetailedMatchTables({
                 {/* Betting Odds - ENHANCED VERSION */}
                 {match.odds && match.status !== "FINISHED" && (
                   <div className="flex flex-col items-center space-y-1">
-                    {/* Display current odds above buttons for verification */}
-                    <div className="text-xs text-gray-500 mb-1">
-                      H:{match.odds.home} D:{match.odds.draw} A:{match.odds.away}
+                    {/* 1X2 Headers aligned with odds buttons */}
+                    <div className="flex items-center space-x-2 text-xs text-gray-600 font-medium">
+                      <div className="min-w-12 text-center">1</div>
+                      <div className="min-w-12 text-center">X</div>
+                      <div className="min-w-12 text-center">2</div>
                     </div>
                     
                     {/* Betting Odds Buttons */}
@@ -722,9 +686,6 @@ export function DetailedMatchTables({
 
   return (
     <div className="space-y-4">
-      {/* Filter Status */}
-      {renderFilterStatus()}
-      
       {/* Live Football Section */}
       {renderFootballSection()}
 

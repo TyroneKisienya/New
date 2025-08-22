@@ -89,9 +89,9 @@ export function MainHeader({
           </div>
 
           {/* Settings */}
-          <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white">
+          {/* <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white">
             <Settings className="w-4 h-4" />
-          </Button>
+          </Button> */}
 
           {/* Sport Buttons - Now always visible */}
           {sports.map((sport) => (
