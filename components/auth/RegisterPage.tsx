@@ -1,4 +1,6 @@
-import React, { useState, useRef } from "react" import { User, Mail, Lock, Eye, EyeOff, Gift, ChevronDown, Search } from "lucide-react" import { supabase } from '@/lib/supabaseClient' interface Country { code: string name: string dialCode: string flag: string } interface UserReg
+import React, { useState, useRef } from "react" 
+import { User, Mail, Lock, Eye, EyeOff, Gift, ChevronDown, Search } from "lucide-react" 
+import { supabase } from '@/lib/supabaseClient' interface Country { code: string name: string dialCode: string flag: string } interface UserReg
 import React, { useState, useRef } from "react"
 import { User, Mail, Lock, Eye, EyeOff, Gift, ChevronDown, Search } from "lucide-react"
 import { supabase } from '@/lib/supabaseClient'
