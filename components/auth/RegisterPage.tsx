@@ -1,5 +1,22 @@
+
+What can I help you with today?
+
+Hello Claude. I would like t0 have the flags for the countries instead of the initials
+
+
+import React, { useState, useRef } from "react" import { User, Mail, Lock, Eye, EyeOff, Gift, ChevronDown, Search } from "lucide-react" import { supabase } from '@/lib/supabaseClient' interface Country { code: string name: string dialCode: string flag: string } interface UserReg
+
+pasted
+
+
+
+34.10 KB •641 lines
+•
+Formatting may be inconsistent from source
+
 import React, { useState, useRef } from "react"
 import { User, Mail, Lock, Eye, EyeOff, Gift, ChevronDown, Search } from "lucide-react"
+import { supabase } from '@/lib/supabaseClient'
 
 interface Country {
   code: string
@@ -346,12 +363,27 @@ export default function RegisterPage({ onClose, onSwitchToLogin }: RegisterPageP
     }
 
     try {
-      // Mock registration - replace with your actual Supabase integration
-      console.log('Registration data:', registerData)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      const { data, error } = await supabase.auth.signUp({
+        email: registerData.email,
+        password: registerData.password,
+        options: {
+          data: {
+            full_name: registerData.fullName,
+            phone_number: registerData.phoneNumber,
+            country_code: registerData.countryCode,
+            country: registerData.country,
+            currency: registerData.currency,
+            promo_code: registerData.promoCode || null,
+          }
+        }
+      })
+
+      if (error) {
+        alert('Registration failed: ' + error.message)
+        setLoading(false)
+        return
+      }
+
       alert('Registration successful! Check your email to confirm.')
       onClose()
     } catch (error) {
@@ -382,257 +414,243 @@ export default function RegisterPage({ onClose, onSwitchToLogin }: RegisterPageP
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold text-gray-800">Sign Up</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
-          >
-            ×
-          </button>
+    <div className="space-y-3 sm:space-y-4">
+      <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6">Sign Up</h2>
+      
+      <form onSubmit={handleRegister} className="space-y-3 sm:space-y-4">
+        <div className="relative">
+          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Full Name"
+            value={registerData.fullName}
+            onChange={(e) => handleInputChange('fullName', e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500 text-sm sm:text-base"
+            required
+          />
         </div>
-        
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={registerData.fullName}
-              onChange={(e) => handleInputChange('fullName', e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
-              required
-            />
-          </div>
 
-          {/* Enhanced Phone Number Input with Country Picker */}
-          <div className="relative">
-            <div className="flex">
-              {/* Country Code Picker */}
-              <div className="relative" ref={countryDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-3 bg-gray-50 border border-gray-200 border-r-0 rounded-l-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 min-w-[100px]"
-                >
-                  <span className="text-lg" style={{ fontSize: '18px', lineHeight: '1' }}>
-                    {selectedCountry.flag}
-                  </span>
-                  <span className="text-sm font-medium">{selectedCountry.dialCode}</span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                </button>
-                
-                {/* Enhanced Country Dropdown with Search */}
-                {isCountryDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden">
-                    {/* Search Input */}
-                    <div className="sticky top-0 bg-white border-b border-gray-200 p-3">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                          type="text"
-                          placeholder="Search countries..."
-                          value={countrySearchTerm}
-                          onChange={(e) => setCountrySearchTerm(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 placeholder-gray-500"
-                          onClick={(e) => e.stopPropagation()}
-                          autoComplete="off"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Countries List */}
-                    <div className="overflow-y-auto max-h-60">
-                      {filteredCountries.length > 0 ? (
-                        filteredCountries.map((country) => (
-                          <button
-                            key={country.code}
-                            type="button"
-                            onClick={() => handleCountrySelect(country)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-800 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                          >
-                            <span className="text-lg" style={{ fontSize: '18px', lineHeight: '1' }}>
-                              {country.flag}
-                            </span>
-                            <span className="flex-1 text-sm">{country.name}</span>
-                            <span className="text-sm text-gray-500 font-medium">{country.dialCode}</span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-6 text-center text-gray-500 text-sm">
-                          No countries found matching "{countrySearchTerm}"
-                        </div>
-                      )}
+        {/* Enhanced Phone Number Input with Country Picker */}
+        <div className="relative">
+          <div className="flex">
+            {/* Country Code Picker */}
+            <div className="relative" ref={countryDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 border-r-0 rounded-l-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
+              >
+                <span className="text-base sm:text-lg">{selectedCountry.flag}</span>
+                <span className="text-xs sm:text-sm font-medium">{selectedCountry.dialCode}</span>
+                <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+              </button>
+              
+              {/* Enhanced Country Dropdown with Search */}
+              {isCountryDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden">
+                  {/* Search Input */}
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Search countries..."
+                        value={countrySearchTerm}
+                        onChange={(e) => setCountrySearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 placeholder-gray-500"
+                        onClick={(e) => e.stopPropagation()}
+                        autoComplete="off"
+                      />
                     </div>
                   </div>
-                )}
-              </div>
-              
-              {/* Phone Number Input */}
-              <input
-                type="tel"
-                placeholder="*** ******"
-                value={registerData.phoneNumber}
-                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                className="flex-1 pl-3 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-r-lg focus:outline-none text-gray-800 placeholder-gray-500"
-                required
-              />
+                  
+                  {/* Countries List */}
+                  <div className="overflow-y-auto max-h-60">
+                    {filteredCountries.length > 0 ? (
+                      filteredCountries.map((country) => (
+                        <button
+                          key={country.code}
+                          type="button"
+                          onClick={() => handleCountrySelect(country)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-800 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          <span className="text-lg">{country.flag}</span>
+                          <span className="flex-1 text-sm">{country.name}</span>
+                          <span className="text-sm text-gray-500 font-medium">{country.dialCode}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-6 text-center text-gray-500 text-sm">
+                        No countries found matching "{countrySearchTerm}"
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          <div className="relative">
-            <select 
-              value={registerData.country}
-              onChange={(e) => {
-                handleInputChange('country', e.target.value)
-                // Update selected country when country select changes
-                const selectedCountryFromList = countries.find(c => c.name === e.target.value)
-                if (selectedCountryFromList) {
-                  setSelectedCountry(selectedCountryFromList)
-                  setRegisterData(prev => ({
-                    ...prev,
-                    countryCode: selectedCountryFromList.dialCode,
-                    country: selectedCountryFromList.name
-                  }))
-                }
-              }}
-              className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-gray-800"
-            >
-              {countries.map((country) => (
-                <option key={country.code} value={country.name}>
-                  {country.name}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="relative">
-            <select 
-              value={registerData.currency}
-              onChange={(e) => handleInputChange('currency', e.target.value)}
-              className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-gray-800"
-            >
-              <option value="EUR">EUR</option>
-              <option value="USD">USD</option>
-              <option value="KES">KES</option>
-              <option value="UGX">UGX</option>
-              <option value="TZS">TZS</option>
-              <option value="RWF">RWF</option>
-              <option value="ETB">ETB</option>
-              <option value="GBP">GBP</option>
-              <option value="NGN">NGN</option>
-              <option value="GHS">GHS</option>
-              <option value="ZAR">ZAR</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            
+            {/* Phone Number Input */}
             <input
-              type="email"
-              placeholder="Email"
-              value={registerData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
+              type="tel"
+              placeholder="*** ******"
+              value={registerData.phoneNumber}
+              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+              className="flex-1 pl-3 pr-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-r-lg focus:outline-none text-gray-800 placeholder-gray-500 text-sm sm:text-base"
               required
             />
           </div>
+        </div>
 
-          <div className="relative">
-            <Gift className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Promo Code (Optional)"
-              value={registerData.promoCode}
-              onChange={(e) => handleInputChange('promoCode', e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
-            />
-          </div>
-
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={registerData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Confirm Password"
-              value={registerData.confirmPassword}
-              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-              className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            >
-              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-
-          <div className="flex items-start text-sm">
-            <input
-              type="checkbox"
-              checked={acceptTerms}
-              onChange={(e) => setAcceptTerms(e.target.checked)}
-              className="mr-2 mt-0.5 flex-shrink-0"
-              required
-            />
-            <span className="text-gray-600 leading-relaxed">
-              I accept{" "}
-              <a href="#" className="text-blue-500 hover:text-blue-600">
-                terms of use
-              </a>
-            </span>
-          </div>
-
-          <button
-            type="submit"
-            disabled={!acceptTerms || loading}
-            className="w-full bg-gray-800 text-white py-3 rounded-lg hover:bg-gray-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+        <div className="relative">
+          <select 
+            value={registerData.country}
+            onChange={(e) => {
+              handleInputChange('country', e.target.value)
+              // Update selected country when country select changes
+              const selectedCountryFromList = countries.find(c => c.name === e.target.value)
+              if (selectedCountryFromList) {
+                setSelectedCountry(selectedCountryFromList)
+                setRegisterData(prev => ({
+                  ...prev,
+                  countryCode: selectedCountryFromList.dialCode,
+                  country: selectedCountryFromList.name
+                }))
+              }
+            }}
+            className="w-full pl-4 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-gray-800 text-sm sm:text-base"
           >
-            {loading ? 'Creating Account...' : 'Sign Up'}
-          </button>
-        </form>
+            {countries.map((country) => (
+              <option key={country.code} value={country.name}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
 
-        <div className="text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <button
-            onClick={onSwitchToLogin}
-            className="text-blue-500 hover:text-blue-600"
+        <div className="relative">
+          <select 
+            value={registerData.currency}
+            onChange={(e) => handleInputChange('currency', e.target.value)}
+            className="w-full pl-4 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-gray-800 text-sm sm:text-base"
           >
-            Log In
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+            <option value="KES">KES</option>
+            <option value="UGX">UGX</option>
+            <option value="TZS">TZS</option>
+            <option value="RWF">RWF</option>
+            <option value="ETB">ETB</option>
+            <option value="GBP">GBP</option>
+            <option value="NGN">NGN</option>
+            <option value="GHS">GHS</option>
+            <option value="ZAR">ZAR</option>
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="email"
+            placeholder="Email"
+            value={registerData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500 text-sm sm:text-base"
+            required
+          />
+        </div>
+
+        <div className="relative">
+          <Gift className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Promo Code (Optional)"
+            value={registerData.promoCode}
+            onChange={(e) => handleInputChange('promoCode', e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500 text-sm sm:text-base"
+          />
+        </div>
+
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={registerData.password}
+            onChange={(e) => handleInputChange('password', e.target.value)}
+            className="w-full pl-10 pr-12 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500 text-sm sm:text-base"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
+
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Confirm Password"
+            value={registerData.confirmPassword}
+            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+            className="w-full pl-10 pr-12 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 placeholder-gray-500 text-sm sm:text-base"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          >
+            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+
+        <div className="flex items-start text-sm">
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            className="mr-2 mt-0.5 flex-shrink-0"
+            required
+          />
+          <span className="text-gray-600 leading-relaxed">
+            I accept{" "}
+            <a href="#" className="text-blue-500 hover:text-blue-600">
+              terms of use
+            </a>
+          </span>
+        </div>
+
+        <button
+          type="submit"
+          disabled={!acceptTerms || loading}
+          className="w-full bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg hover:bg-gray-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+        >
+          {loading ? 'Creating Account...' : 'Sign Up'}
+        </button>
+      </form>
+
+      <div className="text-center text-sm text-gray-600">
+        Already have an account?{" "}
+        <button
+          onClick={onSwitchToLogin}
+          className="text-blue-500 hover:text-blue-600"
+        >
+          Log In
+        </button>
       </div>
     </div>
   )
