@@ -1,19 +1,4 @@
-
-What can I help you with today?
-
-Hello Claude. I would like t0 have the flags for the countries instead of the initials
-
-
 import React, { useState, useRef } from "react" import { User, Mail, Lock, Eye, EyeOff, Gift, ChevronDown, Search } from "lucide-react" import { supabase } from '@/lib/supabaseClient' interface Country { code: string name: string dialCode: string flag: string } interface UserReg
-
-pasted
-
-
-
-34.10 KB •641 lines
-•
-Formatting may be inconsistent from source
-
 import React, { useState, useRef } from "react"
 import { User, Mail, Lock, Eye, EyeOff, Gift, ChevronDown, Search } from "lucide-react"
 import { supabase } from '@/lib/supabaseClient'
